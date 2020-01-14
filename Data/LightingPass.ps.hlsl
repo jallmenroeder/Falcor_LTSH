@@ -47,7 +47,6 @@ cbuffer PerImageCB
 
 float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
 {
-    return normalW;
     // Discard empty pixels
     if (albedo.a <= 0)
     {
