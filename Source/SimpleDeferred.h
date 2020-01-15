@@ -99,6 +99,7 @@ private:
 
     DirectionalLight::SharedPtr mpDirLight;
     PointLight::SharedPtr mpPointLight;
+    AnalyticAreaLight::SharedPtr mpAreaLight;
 
     float mNearZ = 1e-2f;
     float mFarZ = 1e3f;

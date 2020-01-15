@@ -120,6 +120,11 @@ void SimpleDeferred::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
             mpPointLight->renderUI(pGui);
             pGui->endGroup();
         }
+        if (pGui->beginGroup("Area Light"))
+        {
+            mpAreaLight->renderUI(pGui);
+            pGui->endGroup();
+        }
         pGui->endGroup();
     }
 
@@ -209,6 +214,7 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpPointLight = PointLight::create();
     mpDirLight = DirectionalLight::create();
     mpDirLight->setWorldDirection(glm::vec3(-0.5f, -0.2f, -1.0f));
+    mpAreaLight = AnalyticAreaLight::create();
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
@@ -266,6 +272,7 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         pLightCB["gAmbient"] = mAmbientIntensity;
         mpDirLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gDirLight");
         mpPointLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gPointLight");
+        mpAreaLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gAreaLight");
         // Debug mode
         pLightCB->setVariable("gDebugMode", (uint32_t)mDebugMode);
 
