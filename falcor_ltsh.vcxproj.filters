@@ -31,5 +31,8 @@
     <FxCompile Include="Data\LightingPass.ps.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
+    <FxCompile Include="AreaLightUtil.slang">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

@@ -27,6 +27,7 @@
 ***************************************************************************/
 __import ShaderCommon;
 __import Shading;
+__import AreaLightUtil;
 
 cbuffer PerImageCB
 {
@@ -34,6 +35,7 @@ cbuffer PerImageCB
     // Lighting params
     LightData gDirLight;
     LightData gPointLight;
+	AreaLightData gAreaLight;
     float3 gAmbient;
     // Debug mode
     uint gDebugMode;
@@ -68,6 +70,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
+	ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight, 1);
 
     float3 result;
     // Debug vis
@@ -78,9 +81,9 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
     else if (gDebugMode == ShowAlbedo)
         result = albedo.rgb;
     else if (gDebugMode == ShowLighting)
-        result = (dirResult.diffuseBrdf + pointResult.diffuseBrdf) / sd.diffuse.rgb;
+        result = (dirResult.diffuseBrdf + pointResult.diffuseBrdf + areaResult.diffuseBrdf) / sd.diffuse.rgb;
     else
-        result = dirResult.diffuse + pointResult.diffuse;
+        result = dirResult.diffuse + pointResult.diffuse + areaResult.diffuse;
 
     return result;
 }

@@ -215,6 +215,16 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpDirLight = DirectionalLight::create();
     mpDirLight->setWorldDirection(glm::vec3(-0.5f, -0.2f, -1.0f));
     mpAreaLight = AnalyticAreaLight::create();
+	mpAreaLight->setScaling(glm::vec3(1000));
+	mpAreaLight->setTransformMatrix(
+		glm::mat4(
+			1, 0, 0, 0,
+			0, 1, 0, 70,
+			0, 0, 1, 0,
+			0, 0, 0, 1
+		)
+	);
+	mpAreaLight->setIntensity(glm::vec3(1000000000));
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
