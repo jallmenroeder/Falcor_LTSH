@@ -18,9 +18,15 @@
     <ClCompile Include="Source\SimpleDeferred.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\SimpleAreaLight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\SimpleDeferred.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SimpleAreaLight.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -31,8 +37,10 @@
     <FxCompile Include="Data\LightingPass.ps.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
-    <FxCompile Include="AreaLightUtil.slang">
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\AreaLightUtil.slang">
       <Filter>Resource Files</Filter>
-    </FxCompile>
+    </None>
   </ItemGroup>
 </Project>
