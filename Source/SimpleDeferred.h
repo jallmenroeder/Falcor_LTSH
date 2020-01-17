@@ -27,6 +27,7 @@
 ***************************************************************************/
 #pragma once
 #include "Falcor.h"
+#include "SimpleAreaLight.h"
 
 using namespace Falcor;
 
@@ -99,7 +100,7 @@ private:
 
     DirectionalLight::SharedPtr mpDirLight;
     PointLight::SharedPtr mpPointLight;
-    AnalyticAreaLight::SharedPtr mpAreaLight;
+    SimpleAreaLight::SharedPtr mpAreaLight;
 
     float mNearZ = 1e-2f;
     float mFarZ = 1e3f;

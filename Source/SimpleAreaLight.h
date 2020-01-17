@@ -29,10 +29,19 @@ public:
     */
     float getPower() const override;
 
+	/** Get the transformed vertices.
+	*/
+	std::vector<glm::vec3> getTransformedVertices() { return mTransformedVertices3d; }
+
     /** Set transform matrix
         \param[in] mtx object to world space transform matrix
     */
     void setTransformMatrix(const glm::mat4& mtx) { mTransformMatrix = mtx; update(); }
+
+	/** Set vertices of area light polygon (must be closed and without crossings, speciefied in CCW order)
+		\param[in] vertices of the polygon in 2D-XY space
+	*/
+	void setVertices2d(const std::vector<glm::vec2>& vertices) { mVertices2d = vertices; update(); }
 
     /** Get transform matrix
     */
@@ -56,7 +65,10 @@ public:
 private:
     void update();
 
-    std::vector<glm::vec3> vertices;
+	// since we only support planar polygons they must be specified in 2d (x, y) and later be translated
+    std::vector<glm::vec2> mVertices2d;
+	std::vector<glm::vec3> mTransformedVertices3d;
+	size_t mNumVertices;
     glm::mat4 mTransformMatrix;
     glm::vec3 mScaling;
 };
