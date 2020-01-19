@@ -147,10 +147,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\PolygonUtil.cpp" />
     <ClCompile Include="Source\SimpleAreaLight.cpp" />
     <ClCompile Include="Source\SimpleDeferred.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\PolygonUtil.h" />
     <ClInclude Include="Source\SimpleAreaLight.h" />
     <ClInclude Include="Source\SimpleDeferred.h" />
   </ItemGroup>

@@ -1,4 +1,5 @@
 #include "SimpleAreaLight.h"
+#include "PolygonUtil.h"
 
 
 // Code for simple area lights.
@@ -65,12 +66,16 @@ void SimpleAreaLight::update()
 	}
 	mData.surfaceArea = mData.surfaceArea / 2.f;
 
-	// calculate the transformed vertices in worldspace
+	// calculate the transformed vertices in worldspace, also find min and max
+	mMin = glm::vec2(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+	mMax = glm::vec2(std::numeric_limits<float>::min(), std::numeric_limits<float>::min());
 	std::vector<glm::vec3> vertices_3d = std::vector<glm::vec3>();
 	mTransformedVertices3d.clear();
 	for (auto vert_2d: mVertices2d)
 	{
 		vertices_3d.emplace_back(glm::vec3(vert_2d.x, vert_2d.y, 0.f));
+		mMin = glm::min(vert_2d, mMin);
+		mMax = glm::max(vert_2d, mMax);
 	}
 
 	for (auto vert_3d : vertices_3d)
@@ -83,4 +88,25 @@ void SimpleAreaLight::move(const glm::vec3 & position, const glm::vec3 & target,
 {
     mTransformMatrix = glm::inverse(glm::lookAt(position, 2.0f * position - target, up));   // Some math gymnastics to compensate for lookat returning the inverse matrix (suitable for camera), while we want to point the light source
     update();
+}
+
+// simple rejection sampling
+void SimpleAreaLight::getSamples(int n, std::vector<glm::vec2> &samples)
+{
+	int sampleCount = 0;
+	samples.clear();
+	glm::vec2 extent = mMax - mMin;
+
+	while (sampleCount < n)
+	{
+		// get two random values in [0, 1]
+		glm::vec2 sample = glm::vec2((float)std::rand() / RAND_MAX, (float)std::rand() / RAND_MAX);
+		// move sample to polygon space
+		sample = sample * extent + mMin;
+		if (PolygonUtil::isInside(mVertices2d, (int)mNumVertices, sample))
+		{
+			sampleCount++;
+			samples.emplace_back(sample);
+		}
+	}
 }

@@ -26,6 +26,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 #include "SimpleDeferred.h"
+#include "PolygonUtil.h"
 
 const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
@@ -217,8 +218,6 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpDirLight->setWorldDirection(glm::vec3(-0.5f, -0.2f, -1.0f));
 
 	mpAreaLight = SimpleAreaLight::create();
-
-	auto trans_vec = mpAreaLight->getTransformedVertices();
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());

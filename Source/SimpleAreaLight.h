@@ -29,6 +29,10 @@ public:
     */
     float getPower() const override;
 
+    /** Get the 2d vertices.
+    */
+    std::vector<glm::vec2> getVertices2d() { return mVertices2d; }
+
 	/** Get the transformed vertices.
 	*/
 	std::vector<glm::vec3> getTransformedVertices() { return mTransformedVertices3d; }
@@ -46,6 +50,12 @@ public:
     /** Get transform matrix
     */
     glm::mat4 getTransformMatrix() const { return mTransformMatrix; }
+
+    /** Get a vector with n samples inside the polygon. Those samples are in model space and need to be transformed to worldspace for lighting.
+        \param[in] n Number of samples
+        \param[out] sampels Vector containing the sampled points
+    */
+    void getSamples(int n, std::vector<glm::vec2> &samples);
 
     /** Set the light intensity.
         \param[in] intensity Vec3 corresponding to RGB intensity
@@ -71,4 +81,5 @@ private:
 	size_t mNumVertices;
     glm::mat4 mTransformMatrix;
     glm::vec3 mScaling;
+    glm::vec2 mMin, mMax;
 };
