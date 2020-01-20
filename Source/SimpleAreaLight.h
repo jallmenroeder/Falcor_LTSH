@@ -3,6 +3,8 @@
 #include <Graphics/Light.h>
 #include <Data/HostDeviceSharedMacros.h>
 
+#define NUM_SAMPLES 2048
+
 using namespace Falcor;
 
 class SimpleAreaLight : public Light, public std::enable_shared_from_this<SimpleAreaLight>
@@ -23,7 +25,7 @@ public:
 
     /** Set light source scale
       */
-    vec3 getScaling() const { return mScaling; }
+    vec3 getScaling() const { return glm::vec3(mScaling, 1.f); }
 
     /** Get total light power (needed for light picking)
     */
@@ -33,19 +35,19 @@ public:
     */
     std::vector<glm::vec2> getVertices2d() { return mVertices2d; }
 
-	/** Get the transformed vertices.
-	*/
-	std::vector<glm::vec3> getTransformedVertices() { return mTransformedVertices3d; }
+    /** Get the transformed vertices.
+    */
+    std::vector<glm::vec3> getTransformedVertices() { return mTransformedVertices3d; }
 
     /** Set transform matrix
         \param[in] mtx object to world space transform matrix
     */
     void setTransformMatrix(const glm::mat4& mtx) { mTransformMatrix = mtx; update(); }
 
-	/** Set vertices of area light polygon (must be closed and without crossings, speciefied in CCW order)
-		\param[in] vertices of the polygon in 2D-XY space
-	*/
-	void setVertices2d(const std::vector<glm::vec2>& vertices) { mVertices2d = vertices; update(); }
+    /** Set vertices of area light polygon (must be closed and without crossings, speciefied in CCW order)
+        \param[in] vertices of the polygon in 2D-XY space
+    */
+    void setVertices2d(const std::vector<glm::vec2>& vertices) { mVertices2d = vertices; update(); }
 
     /** Get transform matrix
     */
@@ -55,7 +57,7 @@ public:
         \param[in] n Number of samples
         \param[out] sampels Vector containing the sampled points
     */
-    void getSamples(int n, std::vector<glm::vec2> &samples);
+    void createSamples(int n);
 
     /** Set the light intensity.
         \param[in] intensity Vec3 corresponding to RGB intensity
@@ -72,14 +74,18 @@ public:
     */
     void move(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up) override;
 
+    void setSamplesIntoProgramVars(ProgramVars* pVars, ConstantBuffer* pCb, const std::string& varName);
+
 private:
     void update();
 
-	// since we only support planar polygons they must be specified in 2d (x, y) and later be translated
+    // since we only support planar polygons they must be specified in 2d (x, y) and later be translated
     std::vector<glm::vec2> mVertices2d;
-	std::vector<glm::vec3> mTransformedVertices3d;
-	size_t mNumVertices;
+    std::vector<glm::vec2> mScaledVertices2d;
+    std::vector<glm::vec3> mTransformedVertices3d;
+    size_t mNumVertices;
     glm::mat4 mTransformMatrix;
-    glm::vec3 mScaling;
+    glm::vec2 mScaling;
     glm::vec2 mMin, mMax;
+    float4 mSamples[NUM_SAMPLES];
 };

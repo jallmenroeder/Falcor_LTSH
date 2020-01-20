@@ -28,6 +28,10 @@
 __import ShaderCommon;
 __import Shading;
 __import AreaLightUtil;
+__import Lights;
+__import BRDF;
+
+#define NumSamples 2048
 
 cbuffer PerImageCB
 {
@@ -35,10 +39,12 @@ cbuffer PerImageCB
     // Lighting params
     LightData gDirLight;
     LightData gPointLight;
-	AreaLightData gAreaLight;
+    LightData gAreaLight;
     float3 gAmbient;
     // Debug mode
     uint gDebugMode;
+
+    float4 lightSamples[NumSamples];
 };
 
 // Debug modes
@@ -47,8 +53,49 @@ cbuffer PerImageCB
 #define ShowAlbedo      3
 #define ShowLighting    4
 
+ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
+{
+    ShadingResult sr = initShadingResult();
+
+    // Do Lighting for every Sample
+    for (int i = 0; i < NumSamples; i++)
+    {
+        LightSample ls;
+        ls.posW = mul(lightSamples[i], light.transMat).xyz;
+        ls.L = ls.posW - sd.posW;
+        float distSquared = dot(ls.L, ls.L);
+        ls.distance = (distSquared > 1e-5f) ? length(ls.L) : 0;
+        ls.L = (distSquared > 1e-5f) ? normalize(ls.L) : 0;
+
+        // Calculate the falloff
+        float cosTheta = -dot(ls.L, light.dirW); // cos of angle of light orientation
+        float falloff = max(0.f, cosTheta) * light.surfaceArea;
+        falloff *= getDistanceFalloff(distSquared);
+        ls.diffuse = falloff * light.intensity;
+        ls.specular = ls.diffuse;
+        calcCommonLightProperties(sd, ls);
+
+        // If the light doesn't hit the surface or we are viewing the surface from the back, return
+        if (ls.NdotL <= 0) continue;
+        sd.NdotV = saturate(sd.NdotV);
+
+        // Calculate the diffuse term
+        sr.diffuseBrdf = saturate(evalDiffuseBrdf(sd, ls));
+        sr.diffuse += ls.diffuse * sr.diffuseBrdf * ls.NdotL;
+
+        // Calculate the specular term
+        sr.specularBrdf = saturate(evalSpecularBrdf(sd, ls));
+        sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
+    }
+    sr.diffuse = sr.diffuse / (float)NumSamples; 
+    sr.specular = sr.specular / (float)NumSamples;
+
+    return sr;
+};
+
 float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
 {
+
     // Discard empty pixels
     if (albedo.a <= 0)
     {
@@ -63,16 +110,20 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
     sd.NdotV = abs(dot(sd.V, sd.N));
     sd.linearRoughness = linearRoughness;
 
-    /* Reconstruct layers (one diffuse layer) */
+    /* Reconstruct layers (diffuse and specular layer) */
     sd.diffuse = albedo.rgb;
     sd.opacity = 0;
+
+    sd.specular = 0.28f;
+    sd.roughness = 0.1f;
+
+    float3 result;
 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
-	ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight, 1);
+    ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight);
 
-    float3 result;
     // Debug vis
     if (gDebugMode == ShowPos)
         result = posW;
@@ -83,7 +134,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
     else if (gDebugMode == ShowLighting)
         result = (dirResult.diffuseBrdf + pointResult.diffuseBrdf + areaResult.diffuseBrdf) / sd.diffuse.rgb;
     else
-        result = dirResult.diffuse + pointResult.diffuse + areaResult.diffuse;
+        result = dirResult.diffuse + dirResult.specular + pointResult.diffuse + pointResult.specular + areaResult.diffuse + areaResult.specular;
 
     return result;
 }

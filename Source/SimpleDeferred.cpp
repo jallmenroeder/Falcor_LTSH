@@ -183,7 +183,7 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
 {
     mpCamera = Camera::create();
 
-	mpDeferredPassProgram = GraphicsProgram::createFromFile("DeferredPass.ps.hlsl", "", "main");
+    mpDeferredPassProgram = GraphicsProgram::createFromFile("DeferredPass.ps.hlsl", "", "main");
 
     mpLightingPass = FullScreenPass::create("LightingPass.ps.hlsl");
 
@@ -196,8 +196,8 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
 
     // Depth test
     DepthStencilState::Desc dsDesc;
-	dsDesc.setDepthTest(false);
-	mpNoDepthDS = DepthStencilState::create(dsDesc);
+    dsDesc.setDepthTest(false);
+    mpNoDepthDS = DepthStencilState::create(dsDesc);
     dsDesc.setDepthTest(true);
     mpDepthTestDS = DepthStencilState::create(dsDesc);
 
@@ -214,10 +214,17 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
 
     mpPointLight = PointLight::create();
     mpDirLight = DirectionalLight::create();
-	mpDirLight->setIntensity(glm::vec3(0));
+    mpDirLight->setIntensity(glm::vec3(0));
     mpDirLight->setWorldDirection(glm::vec3(-0.5f, -0.2f, -1.0f));
 
-	mpAreaLight = SimpleAreaLight::create();
+    mpAreaLight = SimpleAreaLight::create();
+    mpAreaLight->setScaling(glm::vec3(2.f, 1.f, 1.f));
+    glm::vec3 pos = glm::vec3(100.f, 10.f, 20.f);
+    glm::vec3 pivot = glm::vec3(0.f, 10.f, -40.f);
+    glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
+    mpAreaLight->move(pos, pivot, up);
+    mpAreaLight->createSamples(NUM_SAMPLES);
+    mpAreaLight->setIntensity(glm::vec3(1000.f, 1000.f, 1000.f));
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
@@ -276,6 +283,9 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpDirLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gDirLight");
         mpPointLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gPointLight");
         mpAreaLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gAreaLight");
+
+        mpAreaLight->setSamplesIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "lightSamples");
+        
         // Debug mode
         pLightCB->setVariable("gDebugMode", (uint32_t)mDebugMode);
 
