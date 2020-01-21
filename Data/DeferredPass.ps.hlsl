@@ -35,6 +35,7 @@ struct PsOut
     float4 fragColor0 : SV_TARGET0;
     float4 fragColor1 : SV_TARGET1;
     float4 fragColor2 : SV_TARGET2;
+    float4 fragColor3 : SV_TARGET3;
 };
 
 
@@ -46,6 +47,7 @@ PsOut main(VertexOut vOut)
     psOut.fragColor0 = float4(sd.posW, 1);
     psOut.fragColor1 = float4(sd.N, sd.linearRoughness);
     psOut.fragColor2 = float4(sd.diffuse, sd.opacity);
+    psOut.fragColor3 = float4(sd.specular, sd.roughness);
 
     return psOut;
 }

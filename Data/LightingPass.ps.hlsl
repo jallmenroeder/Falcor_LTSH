@@ -31,7 +31,7 @@ __import AreaLightUtil;
 __import Lights;
 __import BRDF;
 
-#define NumSamples 2048
+#define NumSamples 512
 
 cbuffer PerImageCB
 {
@@ -52,6 +52,8 @@ cbuffer PerImageCB
 #define ShowNormals     2
 #define ShowAlbedo      3
 #define ShowLighting    4
+#define ShowDiffuse     5
+#define ShowSpecular    6
 
 ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
 {
@@ -89,13 +91,13 @@ ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
     }
     sr.diffuse = sr.diffuse / (float)NumSamples; 
     sr.specular = sr.specular / (float)NumSamples;
+    sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
 };
 
-float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
+float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, float3 specular, float roughness)
 {
-
     // Discard empty pixels
     if (albedo.a <= 0)
     {
@@ -114,15 +116,15 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
     sd.diffuse = albedo.rgb;
     sd.opacity = 0;
 
-    sd.specular = 0.28f;
-    sd.roughness = 0.1f;
-
-    float3 result;
+    sd.specular = specular;
+    sd.roughness = roughness;
 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
     ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight);
+
+    float3 result;
 
     // Debug vis
     if (gDebugMode == ShowPos)
@@ -133,8 +135,12 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
         result = albedo.rgb;
     else if (gDebugMode == ShowLighting)
         result = (dirResult.diffuseBrdf + pointResult.diffuseBrdf + areaResult.diffuseBrdf) / sd.diffuse.rgb;
+    else if (gDebugMode == ShowDiffuse)
+        result = dirResult.diffuse + pointResult.diffuse + areaResult.diffuse;
+    else if (gDebugMode == ShowSpecular)
+        result = dirResult.specular + pointResult.specular + areaResult.specular;
     else
-        result = dirResult.diffuse + dirResult.specular + pointResult.diffuse + pointResult.specular + areaResult.diffuse + areaResult.specular;
+        result = dirResult.color.rgb + pointResult.color.rgb + areaResult.color.rgb;
 
     return result;
 }
@@ -142,6 +148,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo)
 Texture2D gGBuf0;
 Texture2D gGBuf1;
 Texture2D gGBuf2;
+Texture2D gGBuf3;
 
 float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
 {
@@ -152,7 +159,11 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
     float linearRoughness = buf1Val.a;
     float4 albedo  = gGBuf2.Load(int3(pos.xy, 0));
 
-    float3 color = shade(posW, normalW, linearRoughness, albedo);
+    float4 buf3Val = gGBuf3.Load(int3(pos.xy, 0));
+    float3 specular = buf3Val.rgb;
+    float roughness = buf3Val.a;
+
+    float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness);
 
     return float4(color, 1);
 }

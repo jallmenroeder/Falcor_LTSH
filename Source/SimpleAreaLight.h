@@ -3,7 +3,7 @@
 #include <Graphics/Light.h>
 #include <Data/HostDeviceSharedMacros.h>
 
-#define NUM_SAMPLES 2048
+#define NUM_SAMPLES 512
 
 using namespace Falcor;
 

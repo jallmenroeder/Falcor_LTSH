@@ -100,6 +100,8 @@ void SimpleDeferred::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
     debugModeList.push_back({ 2, "Normals" });
     debugModeList.push_back({ 3, "Albedo" });
     debugModeList.push_back({ 4, "Illumination" });
+    debugModeList.push_back({ 5, "Diffuse" });
+    debugModeList.push_back({ 6, "Specular" });
     pGui->addDropdown("Debug mode", debugModeList, (uint32_t&)mDebugMode);
 
     Gui::DropdownList cullList;
@@ -293,6 +295,7 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpLightingVars->setTexture("gGBuf0", mpGBufferFbo->getColorTexture(0));
         mpLightingVars->setTexture("gGBuf1", mpGBufferFbo->getColorTexture(1));
         mpLightingVars->setTexture("gGBuf2", mpGBufferFbo->getColorTexture(2));
+        mpLightingVars->setTexture("gGBuf3", mpGBufferFbo->getColorTexture(3));
 
 
         // Kick it off
@@ -339,7 +342,11 @@ void SimpleDeferred::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width,
     // create G-Buffer
     const glm::vec4 clearColor(0.f, 0.f, 0.f, 0.f);
     Fbo::Desc fboDesc;
-    fboDesc.setColorTarget(0, Falcor::ResourceFormat::RGBA16Float).setColorTarget(1, Falcor::ResourceFormat::RGBA16Float).setColorTarget(2, Falcor::ResourceFormat::RGBA16Float).setDepthStencilTarget(Falcor::ResourceFormat::D32Float);
+    fboDesc.setColorTarget(0, Falcor::ResourceFormat::RGBA16Float)
+        .setColorTarget(1, Falcor::ResourceFormat::RGBA16Float)
+        .setColorTarget(2, Falcor::ResourceFormat::RGBA16Float)
+        .setColorTarget(3, Falcor::ResourceFormat::RGBA16Float)
+        .setDepthStencilTarget(Falcor::ResourceFormat::D32Float);
     mpGBufferFbo = FboHelper::create2D(width, height, fboDesc);
 }
 
