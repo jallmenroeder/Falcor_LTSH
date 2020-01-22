@@ -44,9 +44,4 @@
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Data\AreaLightUtil.slang">
-      <Filter>Resource Files</Filter>
-    </None>
-  </ItemGroup>
 </Project>
