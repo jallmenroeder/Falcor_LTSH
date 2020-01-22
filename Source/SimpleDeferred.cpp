@@ -287,6 +287,10 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpAreaLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gAreaLight");
 
         mpAreaLight->setSamplesIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "lightSamples");
+
+        // Set camera position
+        pLightCB->setVariable("gCamPosW", mpCamera->getPosition());
+
         
         // Debug mode
         pLightCB->setVariable("gDebugMode", (uint32_t)mDebugMode);
@@ -296,7 +300,6 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpLightingVars->setTexture("gGBuf1", mpGBufferFbo->getColorTexture(1));
         mpLightingVars->setTexture("gGBuf2", mpGBufferFbo->getColorTexture(2));
         mpLightingVars->setTexture("gGBuf3", mpGBufferFbo->getColorTexture(3));
-        mpLightingVars->setTexture("gGBuf4", mpGBufferFbo->getColorTexture(4));
 
 
         // Kick it off
@@ -347,7 +350,6 @@ void SimpleDeferred::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width,
         .setColorTarget(1, Falcor::ResourceFormat::RGBA16Float)
         .setColorTarget(2, Falcor::ResourceFormat::RGBA16Float)
         .setColorTarget(3, Falcor::ResourceFormat::RGBA16Float)
-        .setColorTarget(4, Falcor::ResourceFormat::RGBA16Float)
         .setDepthStencilTarget(Falcor::ResourceFormat::D32Float);
     mpGBufferFbo = FboHelper::create2D(width, height, fboDesc);
 }

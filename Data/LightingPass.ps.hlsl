@@ -36,6 +36,8 @@ __import BRDF;
 cbuffer PerImageCB
 {
     // G-Buffer
+    // Camera position
+    float3 gCamPosW;
     // Lighting params
     LightData gDirLight;
     LightData gPointLight;
@@ -96,7 +98,7 @@ ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
     return sr;
 };
 
-float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, float3 specular, float roughness, float3 cameraPosW)
+float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, float3 specular, float roughness)
 {
     // Discard empty pixels
     if (albedo.a <= 0)
@@ -107,7 +109,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     /* Reconstruct the hit-point */
     ShadingData sd = initShadingData();
     sd.posW = posW;
-    sd.V = normalize(cameraPosW - posW);
+    sd.V = normalize(gCamPosW - posW);
     sd.N = normalW;
     sd.NdotV = abs(dot(sd.V, sd.N));
     sd.linearRoughness = linearRoughness;
@@ -149,7 +151,6 @@ Texture2D gGBuf0;
 Texture2D gGBuf1;
 Texture2D gGBuf2;
 Texture2D gGBuf3;
-Texture2D gGBuf4;
 
 float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
 {
@@ -163,9 +164,8 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
     float4 buf3Val = gGBuf3.Load(int3(pos.xy, 0));
     float3 specular = buf3Val.rgb;
     float roughness = buf3Val.a;
-    float3 cameraPosW = gGBuf4.Load(int3(pos.xy, 0)).rgb;
 
-    float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness, cameraPosW);
+    float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness);
 
     return float4(color, 1);
 }
