@@ -28,6 +28,7 @@
 #include "SimpleDeferred.h"
 #include "PolygonUtil.h"
 
+// const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
 SimpleDeferred::~SimpleDeferred()
@@ -220,13 +221,13 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpDirLight->setWorldDirection(glm::vec3(-0.5f, -0.2f, -1.0f));
 
     mpAreaLight = SimpleAreaLight::create();
-    mpAreaLight->setScaling(glm::vec3(2.f, 1.f, 1.f));
-    glm::vec3 pos = glm::vec3(100.f, 10.f, 20.f);
-    glm::vec3 pivot = glm::vec3(0.f, 10.f, -40.f);
+    mpAreaLight->setScaling(glm::vec3(4.f, 2.f, 1.f));
+    glm::vec3 pos = glm::vec3(120.f, 20.f, 0.f);
+    glm::vec3 pivot = glm::vec3(-1.f, 0.f, 0.f);
     glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
     mpAreaLight->move(pos, pivot, up);
     mpAreaLight->createSamples(NUM_SAMPLES);
-    mpAreaLight->setIntensity(glm::vec3(1000.f, 1000.f, 1000.f));
+    mpAreaLight->setIntensity(glm::vec3(800.f, 800.f, 800.f));
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
