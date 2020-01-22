@@ -18,14 +18,14 @@ public:
     SimpleAreaLight();
     ~SimpleAreaLight();
 
-    /** Set light source scaling
+    /** Set light source scaling. Only uses x and y component since only planar polygons are used
         \param[in] scale x,y,z scaling factors
     */
     void setScaling(vec3 scale) { mScaling = scale; update(); }
 
-    /** Set light source scale
+    /** Get light source scale. Only uses x and y component since only planar polygons are used
       */
-    vec3 getScaling() const { return glm::vec3(mScaling, 1.f); }
+    vec3 getScaling() const { return glm::vec3(mScaling); }
 
     /** Get total light power (needed for light picking)
     */
@@ -85,7 +85,7 @@ private:
     std::vector<glm::vec3> mTransformedVertices3d;
     size_t mNumVertices;
     glm::mat4 mTransformMatrix;
-    glm::vec2 mScaling;
+    glm::vec3 mScaling;
     glm::vec2 mMin, mMax;
     float4 mSamples[NUM_SAMPLES];
 };

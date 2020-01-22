@@ -21,6 +21,8 @@ SimpleAreaLight::SimpleAreaLight()
     mNumVertices = mVertices2d.size();
 
     mScaling = vec3(1, 1, 1);
+    mData.dirW = glm::normalize(glm::vec3(0.f, 0.f, -1.f));
+    mData.posW = glm::vec3(0.f, 0.f, 0.f);
     update();
 }
 
@@ -35,6 +37,21 @@ void SimpleAreaLight::renderUI(Gui * pGui, const char* group)
 {
     if (!group || pGui->beginGroup(group))
     {
+        if (pGui->addFloat3Var("World Position", mData.posW, -FLT_MAX, FLT_MAX))
+        {
+            update();
+        }
+
+        if (pGui->addDirectionWidget("Direction", mData.dirW))
+        {
+            update();
+        }
+
+        if (pGui->addFloat3Var("Scale", mScaling, 0.f, FLT_MAX))
+        {
+            update();
+        }
+
         Light::renderUI(pGui);
 
         if (group)
@@ -47,9 +64,11 @@ void SimpleAreaLight::renderUI(Gui * pGui, const char* group)
 void SimpleAreaLight::update()
 {
     // Update matrix
-    mData.transMat = mTransformMatrix * glm::scale(glm::mat4(), glm::vec3(mScaling, 1.f));
+    glm::vec3 pivot = mData.posW + mData.dirW;
+    mTransformMatrix = glm::inverse(glm::lookAt(mData.posW, pivot, glm::vec3(0.f, 1.f, 0.f)));
+
+    mData.transMat = mTransformMatrix * glm::scale(glm::mat4(), mScaling);
     mData.transMatIT = glm::inverse(glm::transpose(mData.transMat));
-    mData.dirW = glm::normalize(glm::vec3(mData.transMat * glm::vec4(0.f, 0.f, -1.f, 0.f)));
 
     mNumVertices = mVertices2d.size();
 
@@ -73,9 +92,10 @@ void SimpleAreaLight::update()
     for (auto vert_2d: mVertices2d)
     {
         vertices_3d.emplace_back(glm::vec3(vert_2d.x, vert_2d.y, 0.f));
-        mScaledVertices2d.emplace_back(vert_2d * mScaling);
-        mMin = glm::min(vert_2d * mScaling, mMin);
-        mMax = glm::max(vert_2d * mScaling, mMax);
+        auto scaling2d = glm::vec2(mScaling.x, mScaling.y);
+        mScaledVertices2d.emplace_back(vert_2d * scaling2d);
+        mMin = glm::min(vert_2d * scaling2d, mMin);
+        mMax = glm::max(vert_2d * scaling2d, mMax);
     }
 
     for (auto vert_3d : vertices_3d)
@@ -89,7 +109,8 @@ void SimpleAreaLight::update()
 
 void SimpleAreaLight::move(const glm::vec3 & position, const glm::vec3 & target, const glm::vec3 & up)
 {
-    mTransformMatrix = glm::inverse(glm::lookAt(position, target, up));   // Some math gymnastics to compensate for lookat returning the inverse matrix (suitable for camera), while we want to point the light source
+    mData.posW = position;
+    mData.dirW = glm::normalize(target - position);
     update();
 }
 
