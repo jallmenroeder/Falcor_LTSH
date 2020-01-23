@@ -57,7 +57,7 @@ public:
         \param[in] n Number of samples
         \param[out] sampels Vector containing the sampled points
     */
-    void createSamples(int n);
+    void createSamples();
 
     /** Set the light intensity.
         \param[in] intensity Vec3 corresponding to RGB intensity
@@ -88,4 +88,5 @@ private:
     glm::vec3 mScaling;
     glm::vec2 mMin, mMax;
     float4 mSamples[NUM_SAMPLES];
+    float4 mTransformedSamples[NUM_SAMPLES];
 };

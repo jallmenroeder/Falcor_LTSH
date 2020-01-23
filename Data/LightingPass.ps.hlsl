@@ -65,7 +65,7 @@ ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
     for (int i = 0; i < NumSamples; i++)
     {
         LightSample ls;
-        ls.posW = mul(lightSamples[i], light.transMat).xyz;
+        ls.posW = lightSamples[i].xyz;
         ls.L = ls.posW - sd.posW;
         float distSquared = dot(ls.L, ls.L);
         ls.distance = (distSquared > 1e-5f) ? length(ls.L) : 0;
@@ -118,8 +118,11 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     sd.diffuse = albedo.rgb;
     sd.opacity = 0;
 
-    sd.specular = specular;
-    sd.roughness = roughness;
+    // this follows the specification of the SunTemple scene
+    // sd.specular = specular;
+    // sd.roughness = roughness;
+    sd.specular = specular.b;
+    sd.roughness = specular.g;
 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
@@ -155,7 +158,9 @@ Texture2D gGBuf3;
 float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
 {
     // Fetch a G-Buffer
-    float3 posW    = gGBuf0.Load(int3(pos.xy, 0)).rgb;
+    float4 buf0Val = gGBuf0.Load(int3(pos.xy, 0));
+    float3 posW    = buf0Val.rgb;
+    float opacity = buf0Val.a;
     float4 buf1Val = gGBuf1.Load(int3(pos.xy, 0));
     float3 normalW = buf1Val.rgb;
     float linearRoughness = buf1Val.a;
@@ -167,5 +172,5 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
 
     float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness);
 
-    return float4(color, 1);
+    return float4(color, opacity);
 }

@@ -104,7 +104,7 @@ void SimpleAreaLight::update()
     }
 
     // create new samples
-    this->createSamples(NUM_SAMPLES);
+    this->createSamples();
 }
 
 void SimpleAreaLight::move(const glm::vec3 & position, const glm::vec3 & target, const glm::vec3 & up)
@@ -115,12 +115,12 @@ void SimpleAreaLight::move(const glm::vec3 & position, const glm::vec3 & target,
 }
 
 // simple rejection sampling
-void SimpleAreaLight::createSamples(int n)
+void SimpleAreaLight::createSamples()
 {
     int sampleCount = 0;
     glm::vec2 extent = mMax - mMin;
 
-    while (sampleCount < n)
+    while (sampleCount < NUM_SAMPLES)
     {
         // get two random values in [0, 1]
         glm::vec2 sample = glm::vec2((float)std::rand() / RAND_MAX, (float)std::rand() / RAND_MAX);
@@ -129,6 +129,7 @@ void SimpleAreaLight::createSamples(int n)
         if (PolygonUtil::isInside(mScaledVertices2d, (int)mNumVertices, sample))
         {
             mSamples[sampleCount] = float4(sample.x, sample.y, 0.f, 1.f);
+            mTransformedSamples[sampleCount] =  mData.transMat * mSamples[sampleCount];
             sampleCount++;
         }
     }
@@ -138,5 +139,5 @@ void SimpleAreaLight::setSamplesIntoProgramVars(ProgramVars* pVars, ConstantBuff
 {
     size_t offset = pCb->getVariableOffset(varName);
 
-    pCb->setBlob(&mSamples, offset, sizeof(mSamples));
+    pCb->setBlob(&mTransformedSamples, offset, sizeof(mTransformedSamples));
 }

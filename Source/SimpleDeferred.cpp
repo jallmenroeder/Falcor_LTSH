@@ -28,8 +28,8 @@
 #include "SimpleDeferred.h"
 #include "PolygonUtil.h"
 
-// const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
-const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
+const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
+//const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
 SimpleDeferred::~SimpleDeferred()
 {
@@ -221,13 +221,14 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpDirLight->setWorldDirection(glm::vec3(-0.5f, -0.2f, -1.0f));
 
     mpAreaLight = SimpleAreaLight::create();
-    mpAreaLight->setScaling(glm::vec3(4.f, 2.f, 1.f));
-    glm::vec3 pos = glm::vec3(120.f, 20.f, 0.f);
-    glm::vec3 pivot = glm::vec3(-1.f, 0.f, 0.f);
+    mpAreaLight->setScaling(glm::vec3(1.5f, 1.f, 1.f));
+    glm::vec3 pos = glm::vec3(7.f, 5.f, 0.f);
+    glm::vec3 pivot = glm::vec3(6.f, 5.f, 0.f);
     glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
     mpAreaLight->move(pos, pivot, up);
-    mpAreaLight->createSamples(NUM_SAMPLES);
-    mpAreaLight->setIntensity(glm::vec3(800.f, 800.f, 800.f));
+    mpAreaLight->setIntensity(glm::vec3(100.f, 100.f, 100.f));
+
+    mpCamera->move(glm::vec3(-8.8f, 5.7f, -10.3f), glm::vec3(-8.f, 5.6f, -9.6f), glm::vec3(0.f, 1.f, 0.f));
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
@@ -291,7 +292,6 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
 
         // Set camera position
         pLightCB->setVariable("gCamPosW", mpCamera->getPosition());
-
         
         // Debug mode
         pLightCB->setVariable("gDebugMode", (uint32_t)mDebugMode);
