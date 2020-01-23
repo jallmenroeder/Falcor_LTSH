@@ -75,6 +75,14 @@ ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
         float cosTheta = -dot(ls.L, light.dirW); // cos of angle of light orientation
         float falloff = max(0.f, cosTheta) * light.surfaceArea;
         falloff *= getDistanceFalloff(distSquared);
+        // calculate falloff for other direction to enable lighting in both directions
+        if (falloff < 1e-5f)
+        {
+            cosTheta = -dot(ls.L, -light.dirW); // cos of angle of light orientation
+            falloff = max(0.f, cosTheta) * light.surfaceArea;
+            falloff *= getDistanceFalloff(distSquared);
+        }
+
         ls.diffuse = falloff * light.intensity;
         ls.specular = ls.diffuse;
         calcCommonLightProperties(sd, ls);
