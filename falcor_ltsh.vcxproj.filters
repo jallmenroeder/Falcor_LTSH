@@ -44,4 +44,9 @@
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\Polygon.slang">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

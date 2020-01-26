@@ -16,9 +16,9 @@ SimpleAreaLight::SimpleAreaLight()
         glm::vec2(-1.f, 1.f),
         glm::vec2(-1.f, -1.f),
         glm::vec2(1.f, -1.f),
-        glm::vec2(1.f, 1.f)
+        glm::vec2(1.f, 1.f),
+        glm::vec2(0.f, 2.f)
     });
-    mNumVertices = mVertices2d.size();
 
     mScaling = vec3(1, 1, 1);
     mData.dirW = glm::normalize(glm::vec3(0.f, 0.f, -1.f));
@@ -70,14 +70,12 @@ void SimpleAreaLight::update()
     mData.transMat = mTransformMatrix * glm::scale(glm::mat4(), mScaling);
     mData.transMatIT = glm::inverse(glm::transpose(mData.transMat));
 
-    mNumVertices = mVertices2d.size();
-
     // calculate surface area (ref: https://web.archive.org/web/20100405070507/http://valis.cs.uiuc.edu/~sariel/research/CG/compgeom/msg00831.html)
     // note that vertices must be counter clockwise, else the result will be negative
     mData.surfaceArea = 0.f;
-    for (int i = 0; i < mNumVertices; ++i)
+    for (int i = 0; i < NUM_VERTICES; ++i)
     {
-        int j = (i + 1) % mNumVertices;
+        int j = (i + 1) % NUM_VERTICES;
         mData.surfaceArea += mVertices2d[i].x * mVertices2d[j].y * mScaling.x * mScaling.y;
         mData.surfaceArea -= mVertices2d[i].y * mVertices2d[j].x * mScaling.x * mScaling.y;
     }
@@ -126,7 +124,7 @@ void SimpleAreaLight::createSamples()
         glm::vec2 sample = glm::vec2((float)std::rand() / RAND_MAX, (float)std::rand() / RAND_MAX);
         // move sample to polygon space
         sample = sample * extent + mMin;
-        if (PolygonUtil::isInside(mScaledVertices2d, (int)mNumVertices, sample))
+        if (PolygonUtil::isInside(mVertices2d, NUM_VERTICES, sample))
         {
             mSamples[sampleCount] = float4(sample.x, sample.y, 0.f, 1.f);
             mTransformedSamples[sampleCount] =  mData.transMat * mSamples[sampleCount];
@@ -140,4 +138,19 @@ void SimpleAreaLight::setSamplesIntoProgramVars(ProgramVars* pVars, ConstantBuff
     size_t offset = pCb->getVariableOffset(varName);
 
     pCb->setBlob(&mTransformedSamples, offset, sizeof(mTransformedSamples));
+}
+
+void SimpleAreaLight::setPolygonIntoProgramVars(ConstantBuffer* pCb)
+{
+    size_t offset = pCb->getVariableOffset("transMat");
+    pCb->setBlob(&mData.transMat, offset, sizeof(mData.transMat));
+    offset = pCb->getVariableOffset("transMatIT");
+    pCb->setBlob(&mData.transMatIT, offset, sizeof(mData.transMatIT));
+    float4 polygon[5];
+    for (int i = 0; i < 5; i++)
+    {
+        polygon[i] = float4(mVertices2d[i], 0, 0);
+    }
+    offset = pCb->getVariableOffset("polygon");
+    pCb->setBlob(&polygon, offset, sizeof(polygon));
 }

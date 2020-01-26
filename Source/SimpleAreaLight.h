@@ -4,6 +4,7 @@
 #include <Data/HostDeviceSharedMacros.h>
 
 #define NUM_SAMPLES 512
+#define NUM_VERTICES 5
 
 using namespace Falcor;
 
@@ -76,6 +77,8 @@ public:
 
     void setSamplesIntoProgramVars(ProgramVars* pVars, ConstantBuffer* pCb, const std::string& varName);
 
+    void setPolygonIntoProgramVars(ConstantBuffer* pCb);
+
 private:
     void update();
 
@@ -83,7 +86,6 @@ private:
     std::vector<glm::vec2> mVertices2d;
     std::vector<glm::vec2> mScaledVertices2d;
     std::vector<glm::vec3> mTransformedVertices3d;
-    size_t mNumVertices;
     glm::mat4 mTransformMatrix;
     glm::vec3 mScaling;
     glm::vec2 mMin, mMax;

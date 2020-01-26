@@ -25,6 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
+
 __import ShaderCommon;
 __import Shading;
 __import AreaLightUtil;
@@ -126,11 +127,8 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     sd.diffuse = albedo.rgb;
     sd.opacity = 0;
 
-    // this follows the specification of the SunTemple scene
-    // sd.specular = specular;
-    // sd.roughness = roughness;
-    sd.specular = specular.b;
-    sd.roughness = specular.g;
+    sd.specular = specular;
+    sd.roughness = roughness;
 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
@@ -168,7 +166,7 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
     // Fetch a G-Buffer
     float4 buf0Val = gGBuf0.Load(int3(pos.xy, 0));
     float3 posW    = buf0Val.rgb;
-    float opacity = buf0Val.a;
+    float lightFlag = buf0Val.a;
     float4 buf1Val = gGBuf1.Load(int3(pos.xy, 0));
     float3 normalW = buf1Val.rgb;
     float linearRoughness = buf1Val.a;
@@ -178,7 +176,12 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
     float3 specular = buf3Val.rgb;
     float roughness = buf3Val.a;
 
+    if (lightFlag > .5f) 
+    {
+        float maxIntensity = max(max(gAreaLight.intensity.r, gAreaLight.intensity.g), gAreaLight.intensity.b);
+        return float4(gAreaLight.intensity / maxIntensity, 1);
+    };
     float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness);
 
-    return float4(color, opacity);
+    return float4(color, 1);
 }

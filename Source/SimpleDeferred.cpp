@@ -267,6 +267,10 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         // Render model
         mpModel->bindSamplerToMaterials(mpLinearSampler);
         pRenderContext->setGraphicsVars(mpDeferredVars);
+
+        ConstantBuffer::SharedPtr pDefferedCB = mpDeferredVars["PolygonData"];
+        mpAreaLight->setPolygonIntoProgramVars(pDefferedCB.get());
+
         pState->setProgram(mpDeferredPassProgram);
         ModelRenderer::render(pRenderContext, mpModel, mpCamera.get());
     }
