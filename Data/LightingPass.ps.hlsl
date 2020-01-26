@@ -58,7 +58,7 @@ cbuffer PerImageCB
 #define ShowDiffuse     5
 #define ShowSpecular    6
 
-ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
+ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light, float3 specularColor)
 {
     ShadingResult sr = initShadingResult();
 
@@ -101,7 +101,7 @@ ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light)
         sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
     }
     sr.diffuse = sr.diffuse / (float)NumSamples; 
-    sr.specular = sr.specular / (float)NumSamples;
+    sr.specular = sr.specular * specularColor / (float)NumSamples;
     sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
@@ -127,13 +127,14 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     sd.diffuse = albedo.rgb;
     sd.opacity = 0;
 
-    sd.specular = specular;
+    // sd.specular is used as F0 in BRDF.slang and needs to be fixed four our technique
+    sd.specular = .4f;
     sd.roughness = roughness;
 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
-    ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight);
+    ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight, specular);
 
     float3 result;
 
