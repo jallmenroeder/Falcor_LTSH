@@ -17,7 +17,7 @@ SimpleAreaLight::SimpleAreaLight()
         glm::vec2(-1.f, -1.f),
         glm::vec2(1.f, -1.f),
         glm::vec2(1.f, 1.f),
-        glm::vec2(0.f, 2.f)
+        glm::vec2(0.f, 0.f)
     });
 
     mScaling = vec3(1, 1, 1);
@@ -118,26 +118,29 @@ void SimpleAreaLight::createSamples()
     int sampleCount = 0;
     glm::vec2 extent = mMax - mMin;
 
-    while (sampleCount < NUM_SAMPLES)
+    for (int i = 0; i < 4; i++)
     {
-        // get two random values in [0, 1]
-        glm::vec2 sample = glm::vec2((float)std::rand() / RAND_MAX, (float)std::rand() / RAND_MAX);
-        // move sample to polygon space
-        sample = sample * extent + mMin;
-        if (PolygonUtil::isInside(mVertices2d, NUM_VERTICES, sample))
+        while (sampleCount < NUM_SAMPLES)
         {
-            mSamples[sampleCount] = float4(sample.x, sample.y, 0.f, 1.f);
-            mTransformedSamples[sampleCount] =  mData.transMat * mSamples[sampleCount];
-            sampleCount++;
+            // get two random values in [0, 1]
+            glm::vec2 sample = glm::vec2((float)std::rand() / RAND_MAX, (float)std::rand() / RAND_MAX);
+            // move sample to polygon space
+            sample = sample * extent + mMin;
+            if (PolygonUtil::isInside(mVertices2d, NUM_VERTICES, sample))
+            {
+                mSamples[i][sampleCount] = float4(sample.x, sample.y, 0.f, 1.f);
+                mTransformedSamples[i][sampleCount] = mData.transMat * mSamples[i][sampleCount];
+                sampleCount++;
+            }
         }
     }
 }
 
-void SimpleAreaLight::setSamplesIntoProgramVars(ProgramVars* pVars, ConstantBuffer* pCb, const std::string& varName)
+void SimpleAreaLight::setSamplesIntoProgramVars(ConstantBuffer* pCb, const std::string &varName, int i)
 {
     size_t offset = pCb->getVariableOffset(varName);
 
-    pCb->setBlob(&mTransformedSamples, offset, sizeof(mTransformedSamples));
+    pCb->setBlob(&mTransformedSamples[i], offset, sizeof(mTransformedSamples[i]));
 }
 
 void SimpleAreaLight::setPolygonIntoProgramVars(ConstantBuffer* pCb)

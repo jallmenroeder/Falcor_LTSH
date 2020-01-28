@@ -292,7 +292,21 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpPointLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gPointLight");
         mpAreaLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gAreaLight");
 
-        mpAreaLight->setSamplesIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "lightSamples");
+        //ConstantBuffer::SharedPtr pSampleCB[4] = { mpLightingVars["SampleCB0"], mpLightingVars["SampleCB1"], mpLightingVars["SampleCB2"], mpLightingVars["SampleCB3"] };
+        std::string varNames[4] = { "lightSamples0", "lightSamples1", "lightSamples2", "lightSamples3" };
+
+        //for (int i = 0; i < 4; i++)
+        //{
+        //    mpAreaLight->setSamplesIntoProgramVars(pSampleCB[i].get(), varNames[i], i);
+        //}
+        ConstantBuffer::SharedPtr pSampleCB0 = mpLightingVars["Sample0CB"];
+        ConstantBuffer::SharedPtr pSampleCB1 = mpLightingVars["Sample1CB"];
+        ConstantBuffer::SharedPtr pSampleCB2 = mpLightingVars["Sample2CB"];
+        ConstantBuffer::SharedPtr pSampleCB3 = mpLightingVars["Sample3CB"];
+        mpAreaLight->setSamplesIntoProgramVars(pSampleCB0.get(), 0);
+        mpAreaLight->setSamplesIntoProgramVars(pSampleCB1.get(), 1);
+        mpAreaLight->setSamplesIntoProgramVars(pSampleCB2.get(), 2);
+        mpAreaLight->setSamplesIntoProgramVars(pSampleCB3.get(), 3);
 
         // Set camera position
         pLightCB->setVariable("gCamPosW", mpCamera->getPosition());

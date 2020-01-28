@@ -32,7 +32,8 @@ __import AreaLightUtil;
 __import Lights;
 __import BRDF;
 
-#define NumSamples 512
+#define NumSamples 4096
+#define SampleReductionFactor 16
 
 cbuffer PerImageCB
 {
@@ -46,8 +47,26 @@ cbuffer PerImageCB
     float3 gAmbient;
     // Debug mode
     uint gDebugMode;
+};
 
-    float4 lightSamples[NumSamples];
+cbuffer Sample0CB
+{
+    float4 lightSamples0[NumSamples];
+};
+
+cbuffer Sample1CB
+{
+    float4 lightSamples1[NumSamples];
+};
+
+cbuffer Sample2CB
+{
+    float4 lightSamples2[NumSamples];
+};
+
+cbuffer Sample3CB
+{
+    float4 lightSamples3[NumSamples];
 };
 
 // Debug modes
@@ -58,15 +77,25 @@ cbuffer PerImageCB
 #define ShowDiffuse     5
 #define ShowSpecular    6
 
-ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light, float3 specularColor)
+ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light, float3 specularColor, int sampleSet)
 {
     ShadingResult sr = initShadingResult();
 
     // Do Lighting for every Sample
-    for (int i = 0; i < NumSamples; i++)
+    for (int i = 0; i < NumSamples / SampleReductionFactor; i++)
     {
         LightSample ls;
-        ls.posW = lightSamples[i].xyz;
+
+        // use different sample set dependent on random value
+        if (sampleSet == 0)
+            ls.posW = lightSamples0[i].xyz;
+        else if (sampleSet == 1)
+            ls.posW = lightSamples1[i].xyz;
+        else if (sampleSet == 2)
+            ls.posW = lightSamples2[i].xyz;
+        else
+            ls.posW = lightSamples3[i].xyz;
+
         ls.L = ls.posW - sd.posW;
         float distSquared = dot(ls.L, ls.L);
         ls.distance = (distSquared > 1e-5f) ? length(ls.L) : 0;
@@ -100,14 +129,14 @@ ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light, float3 spec
         sr.specularBrdf = saturate(evalSpecularBrdf(sd, ls));
         sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
     }
-    sr.diffuse = sr.diffuse / (float)NumSamples; 
-    sr.specular = sr.specular * specularColor / (float)NumSamples;
+    sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples; 
+    sr.specular = sr.specular * specularColor * SampleReductionFactor / (float)NumSamples;
     sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
 };
 
-float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, float3 specular, float roughness)
+float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, float3 specular, float roughness, int sampleSet)
 {
     // Discard empty pixels
     if (albedo.a <= 0)
@@ -134,7 +163,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
-    ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight, specular);
+    ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight, specular, sampleSet);
 
     float3 result;
 
@@ -155,6 +184,12 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
         result = dirResult.color.rgb + pointResult.color.rgb + areaResult.color.rgb;
 
     return result;
+}
+
+// returns a random int in {0, 1, 2, 3} based on a 2d point (texC)
+int rand(float2 co)
+{
+    return (int)(frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453123) * 4);
 }
 
 Texture2D gGBuf0;
@@ -182,7 +217,9 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
         float maxIntensity = max(max(gAreaLight.intensity.r, gAreaLight.intensity.g), gAreaLight.intensity.b);
         return float4(gAreaLight.intensity / maxIntensity, 1);
     };
-    float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness);
+
+    int sampleSet = rand(texC);
+    float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness, sampleSet);
 
     return float4(color, 1);
 }

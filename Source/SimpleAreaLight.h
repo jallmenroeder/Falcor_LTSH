@@ -3,7 +3,7 @@
 #include <Graphics/Light.h>
 #include <Data/HostDeviceSharedMacros.h>
 
-#define NUM_SAMPLES 512
+#define NUM_SAMPLES 4096
 #define NUM_VERTICES 5
 
 using namespace Falcor;
@@ -75,7 +75,7 @@ public:
     */
     void move(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up) override;
 
-    void setSamplesIntoProgramVars(ProgramVars* pVars, ConstantBuffer* pCb, const std::string& varName);
+    void setSamplesIntoProgramVars(ConstantBuffer* pCb, const std::string& varName, int i);
 
     void setPolygonIntoProgramVars(ConstantBuffer* pCb);
 
@@ -89,6 +89,6 @@ private:
     glm::mat4 mTransformMatrix;
     glm::vec3 mScaling;
     glm::vec2 mMin, mMax;
-    float4 mSamples[NUM_SAMPLES];
-    float4 mTransformedSamples[NUM_SAMPLES];
+    float4 mSamples[4][NUM_SAMPLES];
+    float4 mTransformedSamples[4][NUM_SAMPLES];
 };
