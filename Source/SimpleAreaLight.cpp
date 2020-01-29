@@ -101,8 +101,11 @@ void SimpleAreaLight::update()
         mTransformedVertices3d.emplace_back(glm::vec3(mData.transMat * glm::vec4(vert_3d, 1.f)));
     }
 
-    // create new samples
-    this->createSamples();
+    // create new samples if ground truth rendering is enabled
+    if (mSampleCreation) 
+    {
+        this->createSamples();
+    }
 }
 
 void SimpleAreaLight::move(const glm::vec3 & position, const glm::vec3 & target, const glm::vec3 & up)

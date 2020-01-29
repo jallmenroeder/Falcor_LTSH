@@ -47,6 +47,8 @@ cbuffer PerImageCB
     float3 gAmbient;
     // Debug mode
     uint gDebugMode;
+    // Area light render mode
+    uint gAreaLightRenderMode;
 };
 
 cbuffer SampleCB0
@@ -77,7 +79,13 @@ cbuffer SampleCB3
 #define ShowDiffuse     5
 #define ShowSpecular    6
 
-ShadingResult evalMaterialAreaLight(ShadingData sd, LightData light, float3 specularColor, int sampleSet)
+// Render modes
+#define GroundTruth     0
+#define LTC             1
+#define LTSH            2
+#define None            3
+
+ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, float3 specularColor, int sampleSet)
 {
     ShadingResult sr = initShadingResult();
 
@@ -163,7 +171,17 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
-    ShadingResult areaResult = evalMaterialAreaLight(sd, gAreaLight, specular, sampleSet);
+    ShadingResult areaResult;
+    if (gAreaLightRenderMode == 0)
+        areaResult = evalMaterialAreaLightGroundTruth(sd, gAreaLight, specular, sampleSet);
+    else if (gAreaLightRenderMode == 1)
+        // not implemented yet
+        areaResult = initShadingResult();
+    else if (gAreaLightRenderMode == 2)
+        // not implemented yet
+        areaResult = initShadingResult();
+    else if (gAreaLightRenderMode == 3)
+        areaResult = initShadingResult();
 
     float3 result;
 

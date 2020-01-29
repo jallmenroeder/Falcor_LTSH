@@ -82,14 +82,24 @@ private:
     RasterizerState::SharedPtr mpCullRastState[3]; // 0 = no culling, 1 = backface culling, 2 = frontface culling
     uint32_t mCullMode = 1;
 
-    enum : uint32_t
+    enum class DebugMode: uint32_t
     {
         Disabled = 0,
         ShowPositions,
         ShowNormals,
         ShowAlbedo,
-        ShowLighting
-    } mDebugMode = Disabled;
+        ShowLighting,
+        Diffuse,
+        Specular
+    } mDebugMode = DebugMode::Disabled;
+
+    enum class AreaLightRenderMode: uint32_t
+    {
+        GroundTruth = 0,
+        LTC,
+        LTSH,
+        Disabled,
+    } mAreaLightRenderMode = AreaLightRenderMode::GroundTruth;
 
     DepthStencilState::SharedPtr mpNoDepthDS;
     DepthStencilState::SharedPtr mpDepthTestDS;

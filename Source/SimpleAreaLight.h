@@ -40,6 +40,14 @@ public:
     */
     std::vector<glm::vec3> getTransformedVertices() { return mTransformedVertices3d; }
 
+    /** Returns if samples need to be created
+    */
+    bool getSampleCreation() { return mSampleCreation; }
+
+    /** Returns if samples need to be created
+    */
+    void setSampleCreation(bool val) { mSampleCreation = val; update(); }
+
     /** Set transform matrix
         \param[in] mtx object to world space transform matrix
     */
@@ -91,4 +99,5 @@ private:
     glm::vec2 mMin, mMax;
     float4 mSamples[4][NUM_SAMPLES];
     float4 mTransformedSamples[4][NUM_SAMPLES];
+    bool mSampleCreation;
 };

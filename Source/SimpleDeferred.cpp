@@ -105,6 +105,13 @@ void SimpleDeferred::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
     debugModeList.push_back({ 6, "Specular" });
     pGui->addDropdown("Debug mode", debugModeList, (uint32_t&)mDebugMode);
 
+    Gui::DropdownList areaLightRenderModeList;
+    areaLightRenderModeList.push_back({ 0, "Ground Truth" });
+    areaLightRenderModeList.push_back({ 1, "LTC" });
+    areaLightRenderModeList.push_back({ 2, "LTSH" });
+    areaLightRenderModeList.push_back({ 3, "None" });
+    pGui->addDropdown("Area Light Render Mode", areaLightRenderModeList, (uint32_t&)mAreaLightRenderMode);
+
     Gui::DropdownList cullList;
     cullList.push_back({0, "No Culling"});
     cullList.push_back({1, "Backface Culling"});
@@ -292,12 +299,25 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpPointLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gPointLight");
         mpAreaLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gAreaLight");
 
-        ConstantBuffer::SharedPtr pSampleCB[4] = { mpLightingVars["SampleCB0"], mpLightingVars["SampleCB1"], mpLightingVars["SampleCB2"], mpLightingVars["SampleCB3"] };
-        std::string varNames[4] = { "lightSamples0", "lightSamples1", "lightSamples2", "lightSamples3" };
-
-        for (int i = 0; i < 4; i++)
+        // create new samples if the area light render mode changed to ground truth, stop sample creation if render mode is not ground truth
+        if (mAreaLightRenderMode == AreaLightRenderMode::GroundTruth && !mpAreaLight->getSampleCreation())
         {
-            mpAreaLight->setSamplesIntoProgramVars(pSampleCB[i].get(), varNames[i], i);
+            mpAreaLight->setSampleCreation(true);
+        } 
+        else if (!(mAreaLightRenderMode == AreaLightRenderMode::GroundTruth) && mpAreaLight->getSampleCreation())
+        {
+            mpAreaLight->setSampleCreation(false);
+        }
+
+        if (mAreaLightRenderMode == AreaLightRenderMode::GroundTruth)
+        {
+            ConstantBuffer::SharedPtr pSampleCB[4] = { mpLightingVars["SampleCB0"], mpLightingVars["SampleCB1"], mpLightingVars["SampleCB2"], mpLightingVars["SampleCB3"] };
+            std::string varNames[4] = { "lightSamples0", "lightSamples1", "lightSamples2", "lightSamples3" };
+
+            for (int i = 0; i < 4; i++)
+            {
+                mpAreaLight->setSamplesIntoProgramVars(pSampleCB[i].get(), varNames[i], i);
+            }
         }
 
         // Set camera position
@@ -305,6 +325,9 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         
         // Debug mode
         pLightCB->setVariable("gDebugMode", (uint32_t)mDebugMode);
+
+        // Area light render mode
+        pLightCB->setVariable("gAreaLightRenderMode", (uint32_t)mAreaLightRenderMode);
 
         // Set GBuffer as input
         mpLightingVars->setTexture("gGBuf0", mpGBufferFbo->getColorTexture(0));
