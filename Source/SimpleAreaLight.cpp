@@ -115,11 +115,11 @@ void SimpleAreaLight::move(const glm::vec3 & position, const glm::vec3 & target,
 // simple rejection sampling
 void SimpleAreaLight::createSamples()
 {
-    int sampleCount = 0;
     glm::vec2 extent = mMax - mMin;
 
     for (int i = 0; i < 4; i++)
     {
+        int sampleCount = 0;
         while (sampleCount < NUM_SAMPLES)
         {
             // get two random values in [0, 1]

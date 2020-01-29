@@ -49,22 +49,22 @@ cbuffer PerImageCB
     uint gDebugMode;
 };
 
-cbuffer Sample0CB
+cbuffer SampleCB0
 {
     float4 lightSamples0[NumSamples];
 };
 
-cbuffer Sample1CB
+cbuffer SampleCB1
 {
     float4 lightSamples1[NumSamples];
 };
 
-cbuffer Sample2CB
+cbuffer SampleCB2
 {
     float4 lightSamples2[NumSamples];
 };
 
-cbuffer Sample3CB
+cbuffer SampleCB3
 {
     float4 lightSamples3[NumSamples];
 };
