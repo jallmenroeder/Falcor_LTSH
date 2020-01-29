@@ -27,6 +27,7 @@
 ***************************************************************************/
 #include "SimpleDeferred.h"
 #include "PolygonUtil.h"
+#include "Numpy.hpp"
 
 const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
@@ -240,6 +241,22 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
 
+    // Load LTC matrices
+    std::vector<double> MInv = std::vector<double>();
+    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", MInv);
+    for (int i = 0; i < 4096; i++)
+    {
+        mLtcMInv[i] = float4(MInv[i * 4], MInv[i * 4 + 1], MInv[i * 4 + 2], MInv[i * 4 + 3]);
+    }
+
+    // Load LTC coefficients
+    std::vector<double> ltcCoeffs = std::vector<double>();
+    aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", ltcCoeffs);
+    for (int i = 0; i < 4096; i++)
+    {
+        mLtcCoeff[i] = float4(ltcCoeffs[i], 0.f, 0.f, 0.f);
+    }
+
     // Load default model
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
 }
@@ -275,8 +292,9 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpModel->bindSamplerToMaterials(mpLinearSampler);
         pRenderContext->setGraphicsVars(mpDeferredVars);
 
+        // Set Light Polygon 
         ConstantBuffer::SharedPtr pDefferedCB = mpDeferredVars["PolygonData"];
-        mpAreaLight->setPolygonIntoProgramVars(pDefferedCB.get());
+        mpAreaLight->setPolygonIntoDeferred(pDefferedCB.get());
 
         pState->setProgram(mpDeferredPassProgram);
         ModelRenderer::render(pRenderContext, mpModel, mpCamera.get());
@@ -298,6 +316,7 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpDirLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gDirLight");
         mpPointLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gPointLight");
         mpAreaLight->setIntoProgramVars(mpLightingVars.get(), pLightCB.get(), "gAreaLight");
+        mpAreaLight->setPolygonIntoLighting(pLightCB.get(), "gAreaLightPosW");
 
         // create new samples if the area light render mode changed to ground truth, stop sample creation if render mode is not ground truth
         if (mAreaLightRenderMode == AreaLightRenderMode::GroundTruth && !mpAreaLight->getSampleCreation())
@@ -318,6 +337,16 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
             {
                 mpAreaLight->setSamplesIntoProgramVars(pSampleCB[i].get(), varNames[i], i);
             }
+        } 
+        else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
+        {
+            ConstantBuffer::SharedPtr pLinMatCB = mpLightingVars["LinMatCB"];
+            size_t offset = pLinMatCB->getVariableOffset("linTransMatInv");
+            pLinMatCB->setBlob(&mLtcMInv, offset, sizeof(mLtcMInv));
+
+            ConstantBuffer::SharedPtr pCoeffCB = mpLightingVars["CoeffCB0"];
+            offset = pCoeffCB->getVariableOffset("coeff0");
+            pCoeffCB->setBlob(&mLtcCoeff, offset, sizeof(mLtcCoeff));
         }
 
         // Set camera position

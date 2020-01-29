@@ -17,7 +17,6 @@ SimpleAreaLight::SimpleAreaLight()
         glm::vec2(-1.f, -1.f),
         glm::vec2(1.f, -1.f),
         glm::vec2(1.f, 1.f),
-        glm::vec2(0.f, 0.f)
     });
 
     mScaling = vec3(1, 1, 1);
@@ -146,17 +145,28 @@ void SimpleAreaLight::setSamplesIntoProgramVars(ConstantBuffer* pCb, const std::
     pCb->setBlob(&mTransformedSamples[i], offset, sizeof(mTransformedSamples[i]));
 }
 
-void SimpleAreaLight::setPolygonIntoProgramVars(ConstantBuffer* pCb)
+void SimpleAreaLight::setPolygonIntoDeferred(ConstantBuffer* pCb)
 {
     size_t offset = pCb->getVariableOffset("transMat");
     pCb->setBlob(&mData.transMat, offset, sizeof(mData.transMat));
     offset = pCb->getVariableOffset("transMatIT");
     pCb->setBlob(&mData.transMatIT, offset, sizeof(mData.transMatIT));
-    float4 polygon[5];
-    for (int i = 0; i < 5; i++)
+    float4 polygon[4];
+    for (int i = 0; i < 4; i++)
     {
         polygon[i] = float4(mVertices2d[i], 0, 0);
     }
     offset = pCb->getVariableOffset("polygon");
+    pCb->setBlob(&polygon, offset, sizeof(polygon));
+}
+
+void SimpleAreaLight::setPolygonIntoLighting(ConstantBuffer* pCb, const std::string& varName)
+{
+    float4 polygon[4];
+    for (int i = 0; i < 4; i++)
+    {
+        polygon[i] = float4(mTransformedVertices3d[i], 0);
+    }
+    size_t offset = pCb->getVariableOffset(varName);
     pCb->setBlob(&polygon, offset, sizeof(polygon));
 }

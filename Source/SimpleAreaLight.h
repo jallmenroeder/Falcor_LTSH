@@ -4,7 +4,7 @@
 #include <Data/HostDeviceSharedMacros.h>
 
 #define NUM_SAMPLES 4096
-#define NUM_VERTICES 5
+#define NUM_VERTICES 4
 
 using namespace Falcor;
 
@@ -85,7 +85,9 @@ public:
 
     void setSamplesIntoProgramVars(ConstantBuffer* pCb, const std::string& varName, int i);
 
-    void setPolygonIntoProgramVars(ConstantBuffer* pCb);
+    void setPolygonIntoDeferred(ConstantBuffer* pCb);
+
+    void setPolygonIntoLighting(ConstantBuffer* pCb, const std::string& varName);
 
 private:
     void update();

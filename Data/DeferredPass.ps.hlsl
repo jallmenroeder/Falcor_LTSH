@@ -30,7 +30,7 @@ __import ShaderCommon;
 __import Polygon;
 __import Shading;
 
-#define NUM_VERTICES 5
+#define NUM_VERTICES 4
 
 struct PsOut
 {

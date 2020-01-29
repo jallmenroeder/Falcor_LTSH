@@ -152,6 +152,7 @@
     <ClCompile Include="Source\SimpleDeferred.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Numpy.hpp" />
     <ClInclude Include="Source\PolygonUtil.h" />
     <ClInclude Include="Source\SimpleAreaLight.h" />
     <ClInclude Include="Source\SimpleDeferred.h" />
@@ -165,6 +166,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Data\LTC.slang" />
     <None Include="Data\Polygon.slang" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

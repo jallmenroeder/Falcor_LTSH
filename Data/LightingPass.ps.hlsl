@@ -29,11 +29,13 @@
 __import ShaderCommon;
 __import Shading;
 __import AreaLightUtil;
+__import LTC;
 __import Lights;
 __import BRDF;
 
 #define NumSamples 4096
 #define SampleReductionFactor 16
+#define NumVertices 4
 
 cbuffer PerImageCB
 {
@@ -49,27 +51,17 @@ cbuffer PerImageCB
     uint gDebugMode;
     // Area light render mode
     uint gAreaLightRenderMode;
+    float4 gAreaLightPosW[NumVertices];
 };
 
-cbuffer SampleCB0
-{
-    float4 lightSamples0[NumSamples];
-};
+cbuffer SampleCB0 { float4 lightSamples0[NumSamples]; };
+cbuffer SampleCB1 { float4 lightSamples1[NumSamples]; };
+cbuffer SampleCB2 { float4 lightSamples2[NumSamples]; };
+cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 
-cbuffer SampleCB1
-{
-    float4 lightSamples1[NumSamples];
-};
+cbuffer LinMatCB { float4 linTransMatInv[4096]; };
 
-cbuffer SampleCB2
-{
-    float4 lightSamples2[NumSamples];
-};
-
-cbuffer SampleCB3
-{
-    float4 lightSamples3[NumSamples];
-};
+cbuffer CoeffCB0 { float4 coeff0[4096]; };
 
 // Debug modes
 #define ShowPos         1
@@ -84,6 +76,33 @@ cbuffer SampleCB3
 #define LTC             1
 #define LTSH            2
 #define None            3
+
+float3x3 getMInv(int2 indices)
+{
+    float4 matVec = linTransMatInv[indices.x * 64 + indices.y];
+    return transpose(float3x3(
+        1, 0, matVec.x,
+        0, matVec.y, 0,
+        matVec.z, 0, matVec.w
+    ));
+}
+
+ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 specularColor)
+{
+    ShadingResult sr = initShadingResult();
+    int2 indices = paramToIdx(sd.NdotV, sd.roughness);
+
+    float3x3 MInv = getMInv(indices);
+    float coeff = coeff0[indices.x * 64 + indices.y].x;
+
+    sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * coeff * specularColor;
+    // Normalization, TODO: check if this is correct
+    sr.specular /= 2
+    sr.diffuse = float3(0, 0, 0);
+    sr.color.rgb = sr.diffuse + sr.specular;
+
+    return sr;
+}
 
 ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, float3 specularColor, int sampleSet)
 {
@@ -172,15 +191,14 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
     ShadingResult areaResult;
-    if (gAreaLightRenderMode == 0)
+    if (gAreaLightRenderMode == GroundTruth)
         areaResult = evalMaterialAreaLightGroundTruth(sd, gAreaLight, specular, sampleSet);
-    else if (gAreaLightRenderMode == 1)
+    else if (gAreaLightRenderMode == LTC)
+        areaResult = evalMaterialAreaLightLTC(sd, gAreaLight, specular);
+    else if (gAreaLightRenderMode == LTSH)
         // not implemented yet
         areaResult = initShadingResult();
-    else if (gAreaLightRenderMode == 2)
-        // not implemented yet
-        areaResult = initShadingResult();
-    else if (gAreaLightRenderMode == 3)
+    else if (gAreaLightRenderMode == None)
         areaResult = initShadingResult();
 
     float3 result;

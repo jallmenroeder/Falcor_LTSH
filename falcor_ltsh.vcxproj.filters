@@ -35,6 +35,9 @@
     <ClInclude Include="Source\PolygonUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Numpy.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Data\DeferredPass.ps.hlsl">
@@ -46,6 +49,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\Polygon.slang">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Data\LTC.slang">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
