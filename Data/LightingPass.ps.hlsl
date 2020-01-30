@@ -97,7 +97,7 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
 
     sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * coeff * specularColor;
     // Normalization, TODO: check if this is correct
-    sr.specular /= 2
+    sr.specular /= 2;
     sr.diffuse = float3(0, 0, 0);
     sr.color.rgb = sr.diffuse + sr.specular;
 
