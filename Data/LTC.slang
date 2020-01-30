@@ -3,7 +3,7 @@
 
 int2 paramToIdx(float cosTheta, float roughness)
 {
-    int l_idx = round(cosTheta * 63 / 1.57079);
+    int l_idx = round(acos(cosTheta) * 63 / 1.57079);
     int a_idx = round(sqrt(roughness) * 63);
     return int2(l_idx, a_idx);
 }

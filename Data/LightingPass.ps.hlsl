@@ -91,16 +91,27 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
 {
     ShadingResult sr = initShadingResult();
     int2 indices = paramToIdx(sd.NdotV, sd.roughness);
-
-    float3x3 MInv = getMInv(indices);
     float coeff = coeff0[indices.x * 64 + indices.y].x;
 
-    sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * coeff * specularColor;
-    // Normalization, TODO: check if this is correct
-    sr.specular /= 2;
-    sr.diffuse = float3(0, 0, 0);
-    sr.color.rgb = sr.diffuse + sr.specular;
+    // diffuse lighting
+    float3x3 Identity = float3x3(
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1
+        );
 
+    sr.diffuse = LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity) * sd.diffuse;
+
+    // normalize
+    sr.diffuse /= 2 * 3.14159;
+
+    float3x3 MInv = getMInv(indices) * coeff;
+
+    sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor;
+    // Normalization, TODO: check if this is correct
+    sr.specular /= 2 * 3.14159;
+
+    sr.color.rgb = sr.diffuse + sr.specular;
     return sr;
 }
 
