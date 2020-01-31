@@ -87,6 +87,12 @@ float3x3 getMInv(int2 indices)
     ));
 }
 
+// returns a random int in {0, 1, 2, 3} based on a 2d point (texC)
+int rand(float2 co)
+{
+    return (int)(frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453123) * 4);
+}
+
 ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 specularColor)
 {
     ShadingResult sr = initShadingResult();
@@ -100,14 +106,14 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
         0, 0, 1
         );
 
-    sr.diffuse = LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity) * sd.diffuse;
+    sr.diffuse = saturate(LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity)) * sd.diffuse;
 
     // normalize
     sr.diffuse /= 2 * 3.14159;
 
     float3x3 MInv = getMInv(indices) * coeff;
 
-    sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor;
+    sr.specular = saturate(LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity)) * specularColor;
     // Normalization, TODO: check if this is correct
     sr.specular /= 2 * 3.14159;
 
@@ -160,7 +166,7 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sd.NdotV = saturate(sd.NdotV);
 
         // Calculate the diffuse term
-        sr.diffuseBrdf = saturate(evalDiffuseBrdf(sd, ls));
+        sr.diffuseBrdf = saturate(evalDiffuseLambertBrdf(sd, ls));
         sr.diffuse += ls.diffuse * sr.diffuseBrdf * ls.NdotL;
 
         // Calculate the specular term
@@ -188,7 +194,6 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     sd.V = normalize(gCamPosW - posW);
     sd.N = normalW;
     sd.NdotV = abs(dot(sd.V, sd.N));
-    sd.linearRoughness = linearRoughness;
 
     /* Reconstruct layers (diffuse and specular layer) */
     sd.diffuse = albedo.rgb;
@@ -231,12 +236,6 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
         result = dirResult.color.rgb + pointResult.color.rgb + areaResult.color.rgb;
 
     return result;
-}
-
-// returns a random int in {0, 1, 2, 3} based on a 2d point (texC)
-int rand(float2 co)
-{
-    return (int)(frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453123) * 4);
 }
 
 Texture2D gGBuf0;
