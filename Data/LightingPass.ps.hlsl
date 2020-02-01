@@ -28,7 +28,6 @@
 
 __import ShaderCommon;
 __import Shading;
-__import AreaLightUtil;
 __import LTC;
 __import Lights;
 __import BRDF;
