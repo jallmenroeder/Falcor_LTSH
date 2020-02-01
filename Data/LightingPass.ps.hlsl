@@ -92,6 +92,36 @@ int rand(float2 co)
     return (int)(frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453123) * 4);
 }
 
+// normally lightPosW is stored in the LightData but for our ground truth sampling we need to set manually
+LightSample calculateAreaLightSample(inout ShadingData sd, in LightData light, in float3 lightPosW)
+{
+    LightSample ls;
+
+    ls.posW = lightPosW;
+
+    ls.L = ls.posW - sd.posW;
+    float distSquared = dot(ls.L, ls.L);
+    ls.distance = (distSquared > 1e-5f) ? length(ls.L) : 0;
+    ls.L = (distSquared > 1e-5f) ? normalize(ls.L) : 0;
+
+    // Calculate the falloff
+    float cosTheta = -dot(ls.L, light.dirW); // cos of angle of light orientation
+    float falloff = max(0.f, cosTheta) * light.surfaceArea;
+    falloff *= getDistanceFalloff(distSquared);
+    // calculate falloff for other direction to enable lighting in both directions
+    if (falloff < 1e-5f)
+    {
+        cosTheta = -dot(ls.L, -light.dirW); // cos of angle of light orientation
+        falloff = max(0.f, cosTheta) * light.surfaceArea;
+        falloff *= getDistanceFalloff(distSquared);
+    }
+
+    ls.diffuse = falloff * light.intensity;
+    ls.specular = ls.diffuse;
+    calcCommonLightProperties(sd, ls);
+    return ls;
+}
+
 ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 specularColor)
 {
     ShadingResult sr = initShadingResult();
@@ -105,16 +135,18 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
         0, 0, 1
         );
 
-    sr.diffuse = saturate(LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity)) * sd.diffuse;
+    sr.diffuse = LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity) * sd.diffuse;
 
     // normalize
     sr.diffuse /= 2 * 3.14159;
+    sr.diffuse = saturate(sr.diffuse);
 
     float3x3 MInv = getMInv(indices) * coeff;
 
-    sr.specular = saturate(LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity)) * specularColor;
+    sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor;
     // Normalization, TODO: check if this is correct
-    sr.specular /= 2 * 3.14159;
+    sr.specular /= 2 * 3.14159 * 3.14159;
+    sr.specular = saturate(sr.specular);
 
     sr.color.rgb = sr.diffuse + sr.specular;
     return sr;
@@ -127,38 +159,18 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
     // Do Lighting for every Sample
     for (int i = 0; i < NumSamples / SampleReductionFactor; i++)
     {
-        LightSample ls;
-
+        float3 lightPosW;
         // use different sample set dependent on random value
         if (sampleSet == 0)
-            ls.posW = lightSamples0[i].xyz;
+            lightPosW = lightSamples0[i].xyz;
         else if (sampleSet == 1)
-            ls.posW = lightSamples1[i].xyz;
+            lightPosW = lightSamples1[i].xyz;
         else if (sampleSet == 2)
-            ls.posW = lightSamples2[i].xyz;
+            lightPosW = lightSamples2[i].xyz;
         else
-            ls.posW = lightSamples3[i].xyz;
+            lightPosW = lightSamples3[i].xyz;
 
-        ls.L = ls.posW - sd.posW;
-        float distSquared = dot(ls.L, ls.L);
-        ls.distance = (distSquared > 1e-5f) ? length(ls.L) : 0;
-        ls.L = (distSquared > 1e-5f) ? normalize(ls.L) : 0;
-
-        // Calculate the falloff
-        float cosTheta = -dot(ls.L, light.dirW); // cos of angle of light orientation
-        float falloff = max(0.f, cosTheta) * light.surfaceArea;
-        falloff *= getDistanceFalloff(distSquared);
-        // calculate falloff for other direction to enable lighting in both directions
-        if (falloff < 1e-5f)
-        {
-            cosTheta = -dot(ls.L, -light.dirW); // cos of angle of light orientation
-            falloff = max(0.f, cosTheta) * light.surfaceArea;
-            falloff *= getDistanceFalloff(distSquared);
-        }
-
-        ls.diffuse = falloff * light.intensity;
-        ls.specular = ls.diffuse;
-        calcCommonLightProperties(sd, ls);
+        LightSample ls = calculateAreaLightSample(sd, light, lightPosW);
 
         // If the light doesn't hit the surface or we are viewing the surface from the back, return
         if (ls.NdotL <= 0) continue;
@@ -169,11 +181,11 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sr.diffuse += ls.diffuse * sr.diffuseBrdf * ls.NdotL;
 
         // Calculate the specular term
-        sr.specularBrdf = saturate(evalSpecularBrdf(sd, ls));
+        sr.specularBrdf = evalSpecularBrdf(sd, ls) * specularColor;
         sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
     }
     sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples; 
-    sr.specular = sr.specular * specularColor * SampleReductionFactor / (float)NumSamples;
+    sr.specular = sr.specular * SampleReductionFactor / (float)NumSamples;
     sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
@@ -193,6 +205,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     sd.V = normalize(gCamPosW - posW);
     sd.N = normalW;
     sd.NdotV = abs(dot(sd.V, sd.N));
+    sd.linearRoughness = linearRoughness;
 
     /* Reconstruct layers (diffuse and specular layer) */
     sd.diffuse = albedo.rgb;
