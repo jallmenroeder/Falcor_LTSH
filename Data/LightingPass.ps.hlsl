@@ -106,18 +106,18 @@ LightSample calculateAreaLightSample(inout ShadingData sd, in LightData light, i
 
     // Calculate the falloff
     float cosTheta = -dot(ls.L, light.dirW); // cos of angle of light orientation
-    float falloff = max(0.f, cosTheta) * light.surfaceArea;
+    float falloff = max(0.f, cosTheta);
     falloff *= getDistanceFalloff(distSquared);
     // calculate falloff for other direction to enable lighting in both directions
     if (falloff < 1e-5f)
     {
         cosTheta = -dot(ls.L, -light.dirW); // cos of angle of light orientation
-        falloff = max(0.f, cosTheta) * light.surfaceArea;
+        falloff = max(0.f, cosTheta);
         falloff *= getDistanceFalloff(distSquared);
     }
 
-    ls.diffuse = falloff * light.intensity;
-    ls.specular = ls.diffuse;
+    ls.diffuse = falloff;
+    ls.specular = falloff;
     calcCommonLightProperties(sd, ls);
     return ls;
 }
@@ -177,16 +177,16 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sd.NdotV = saturate(sd.NdotV);
 
         // Calculate the diffuse term
-        sr.diffuseBrdf = saturate(evalDiffuseLambertBrdf(sd, ls));
+        sr.diffuseBrdf = evalDiffuseLambertBrdf(sd, ls);
         sr.diffuse += ls.diffuse * sr.diffuseBrdf * ls.NdotL;
 
         // Calculate the specular term
-        sr.specularBrdf = evalSpecularBrdf(sd, ls) * specularColor;
+        sr.specularBrdf = evalSpecularBrdf(sd, ls);
         sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
     }
-    sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples; 
-    sr.specular = sr.specular * SampleReductionFactor / (float)NumSamples;
-    sr.color.rgb = sr.diffuse + sr.specular;
+    sr.diffuse = saturate(sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity);
+    sr.specular = saturate(sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor);
+    sr.color.rgb = saturate(sr.diffuse + sr.specular);
 
     return sr;
 };
@@ -245,7 +245,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     else if (gDebugMode == ShowSpecular)
         result = dirResult.specular + pointResult.specular + areaResult.specular;
     else
-        result = dirResult.color.rgb + pointResult.color.rgb + areaResult.color.rgb;
+        result = dirResult.diffuse + dirResult.specular * specular + pointResult.diffuse + pointResult.specular * specular + areaResult.color.rgb;
 
     return result;
 }
