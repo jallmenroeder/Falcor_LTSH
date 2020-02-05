@@ -32,6 +32,16 @@
 const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
+
+void convertVectorDoubleToFloat(const std::vector<double>& in, std::vector<float>& out)
+{
+    out.clear();
+    for (auto val : in)
+    {
+        out.push_back(float(val));
+    }
+}
+
 SimpleDeferred::~SimpleDeferred()
 {
 }
@@ -244,12 +254,14 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     // Load LTC matrices
     std::vector<double> temp = std::vector<double>();
     aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
-    std::vector<float> MInv(temp.begin(), temp.end());
+    std::vector<float> MInv = std::vector<float>();
+    convertVectorDoubleToFloat(temp, MInv);
     mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 64 * 64 * 4, 1u, MInv.data(), Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget);
 
     // Load LTC coefficients
     aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
-    std::vector<float> ltcCoeffs(temp.begin(), temp.end());
+    std::vector<float> ltcCoeffs = std::vector<float>();
+    convertVectorDoubleToFloat(temp, ltcCoeffs);
     mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R16Float, 64 * 64, 1u, ltcCoeffs.data(), Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget);
 
     // Load default model

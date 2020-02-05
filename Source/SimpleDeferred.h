@@ -120,6 +120,6 @@ private:
     std::vector<uint32_t> mChangeModeFrames;
     std::vector<uint32_t>::iterator mChangeModeIt;
 
-    float4 mLtcMInv[4096];
-    float4 mLtcCoeff[4096];
+    Texture::SharedPtr mLtcMInv;
+    Texture::SharedPtr mLtcCoeff;
 };

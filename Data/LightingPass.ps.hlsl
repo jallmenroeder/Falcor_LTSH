@@ -58,10 +58,6 @@ cbuffer SampleCB1 { float4 lightSamples1[NumSamples]; };
 cbuffer SampleCB2 { float4 lightSamples2[NumSamples]; };
 cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 
-cbuffer LinMatCB { float4 linTransMatInv[4096]; };
-
-cbuffer CoeffCB0 { float4 coeff0[4096]; };
-
 // Debug modes
 #define ShowPos         1
 #define ShowNormals     2
@@ -75,16 +71,6 @@ cbuffer CoeffCB0 { float4 coeff0[4096]; };
 #define LTC             1
 #define LTSH            2
 #define None            3
-
-float3x3 getMInv(int2 indices)
-{
-    float4 matVec = linTransMatInv[indices.x * 64 + indices.y];
-    return transpose(float3x3(
-        1, 0, matVec.x,
-        0, matVec.y, 0,
-        matVec.z, 0, matVec.w
-    ));
-}
 
 // returns a random int in {0, 1, 2, 3} based on a 2d point (texC)
 int rand(float2 co)
@@ -125,8 +111,6 @@ LightSample calculateAreaLightSample(inout ShadingData sd, in LightData light, i
 ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 specularColor)
 {
     ShadingResult sr = initShadingResult();
-    int2 indices = paramToIdx(sd.NdotV, sd.roughness);
-    float coeff = coeff0[indices.x * 64 + indices.y].x;
 
     // diffuse lighting
     float3x3 Identity = float3x3(
@@ -141,7 +125,7 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
     sr.diffuse /= 2 * 3.14159;
     sr.diffuse = saturate(sr.diffuse);
 
-    float3x3 MInv = getMInv(indices) * coeff;
+    float3x3 MInv = getLtcMatrix(sd.NdotV, sd.roughness);
 
     sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor;
     // Normalization, TODO: check if this is correct
@@ -254,6 +238,9 @@ Texture2D gGBuf0;
 Texture2D gGBuf1;
 Texture2D gGBuf2;
 Texture2D gGBuf3;
+
+Texture2D gMinv;
+Texture2D gCoeff;
 
 float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
 {
