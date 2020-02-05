@@ -234,7 +234,7 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     glm::vec3 pivot = glm::vec3(6.f, 5.f, 0.f);
     glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
     mpAreaLight->move(pos, pivot, up);
-    mpAreaLight->setIntensity(glm::vec3(100.f, 100.f, 100.f));
+    mpAreaLight->setIntensity(glm::vec3(10.f, 10.f, 10.f));
 
     mpCamera->move(glm::vec3(-8.8f, 5.7f, -10.3f), glm::vec3(-8.f, 5.6f, -9.6f), glm::vec3(0.f, 1.f, 0.f));
 
@@ -242,20 +242,15 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
 
     // Load LTC matrices
-    std::vector<double> MInv = std::vector<double>();
-    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", MInv);
-    for (int i = 0; i < 4096; i++)
-    {
-        mLtcMInv[i] = float4(MInv[i * 4], MInv[i * 4 + 1], MInv[i * 4 + 2], MInv[i * 4 + 3]);
-    }
+    std::vector<double> temp = std::vector<double>();
+    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
+    std::vector<float> MInv(temp.begin(), temp.end());
+    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 64 * 64 * 4, 1u, MInv.data(), Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget);
 
     // Load LTC coefficients
-    std::vector<double> ltcCoeffs = std::vector<double>();
-    aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", ltcCoeffs);
-    for (int i = 0; i < 4096; i++)
-    {
-        mLtcCoeff[i] = float4(ltcCoeffs[i], 0.f, 0.f, 0.f);
-    }
+    aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
+    std::vector<float> ltcCoeffs(temp.begin(), temp.end());
+    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R16Float, 64 * 64, 1u, ltcCoeffs.data(), Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget);
 
     // Load default model
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
@@ -340,13 +335,12 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         } 
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
         {
-            ConstantBuffer::SharedPtr pLinMatCB = mpLightingVars["LinMatCB"];
-            size_t offset = pLinMatCB->getVariableOffset("linTransMatInv");
-            pLinMatCB->setBlob(&mLtcMInv, offset, sizeof(mLtcMInv));
+            mpLightingVars->setTexture("gMinv", mLtcMInv);
+            mpLightingVars->setTexture("gCoeff", mLtcCoeff); 
 
-            ConstantBuffer::SharedPtr pCoeffCB = mpLightingVars["CoeffCB0"];
-            offset = pCoeffCB->getVariableOffset("coeff0");
-            pCoeffCB->setBlob(&mLtcCoeff, offset, sizeof(mLtcCoeff));
+            Sampler::Desc desc;
+            desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap);
+            mpLightingVars->setSampler("gSampler", Sampler::create(desc));
         }
 
         // Set camera position
