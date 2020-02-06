@@ -32,6 +32,35 @@
 const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
+// convert matrix data read from .npy file to a buffer which can written in the texture
+void convertMInv(const std::vector<double>& in, std::vector<float>& out)
+{
+    out = std::vector<float>(in.size());
+    for (int i = 0; i < 64; i++)
+    {
+        for (int j = 0; j < 64; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                out[j * 64 * 4 + i * 4 + k] = float(in[i * 64 * 4 + j * 4 + k]);
+            }
+        }
+    }
+}
+
+// convert coefficient data read from .npy file to a buffer which can written in the texture
+void convertLtcCoeff(const std::vector<double>& in, std::vector<float>& out)
+{
+    out = std::vector<float>(in.size());
+    for (int i = 0; i < 64; i++)
+    {
+        for (int j = 0; j < 64; j++)
+        {
+            out[j * 64 + i] = float(in[i * 64 + j]);
+        }
+    }
+}
+
 SimpleDeferred::~SimpleDeferred()
 {
 }
@@ -234,7 +263,7 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     glm::vec3 pivot = glm::vec3(6.f, 5.f, 0.f);
     glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
     mpAreaLight->move(pos, pivot, up);
-    mpAreaLight->setIntensity(glm::vec3(100.f, 100.f, 100.f));
+    mpAreaLight->setIntensity(glm::vec3(10.f, 10.f, 10.f));
 
     mpCamera->move(glm::vec3(-8.8f, 5.7f, -10.3f), glm::vec3(-8.f, 5.6f, -9.6f), glm::vec3(0.f, 1.f, 0.f));
 
@@ -242,20 +271,22 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
 
     // Load LTC matrices
-    std::vector<double> MInv = std::vector<double>();
-    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", MInv);
-    for (int i = 0; i < 4096; i++)
-    {
-        mLtcMInv[i] = float4(MInv[i * 4], MInv[i * 4 + 1], MInv[i * 4 + 2], MInv[i * 4 + 3]);
-    }
+    std::vector<double> temp = std::vector<double>();
+    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
+    std::vector<float> MInv = std::vector<float>();
+    convertMInv(temp, MInv);
+    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, MInv.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
-    std::vector<double> ltcCoeffs = std::vector<double>();
-    aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", ltcCoeffs);
-    for (int i = 0; i < 4096; i++)
-    {
-        mLtcCoeff[i] = float4(ltcCoeffs[i], 0.f, 0.f, 0.f);
-    }
+    aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
+    std::vector<float> ltcCoeffs = std::vector<float>();
+    convertLtcCoeff(temp, ltcCoeffs);
+    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, ltcCoeffs.data(), Resource::BindFlags::ShaderResource);
+
+    // Create Sampler
+    Sampler::Desc desc;
+    desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap);
+    mSampler = Sampler::create(desc);
 
     // Load default model
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
@@ -340,13 +371,9 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         } 
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
         {
-            ConstantBuffer::SharedPtr pLinMatCB = mpLightingVars["LinMatCB"];
-            size_t offset = pLinMatCB->getVariableOffset("linTransMatInv");
-            pLinMatCB->setBlob(&mLtcMInv, offset, sizeof(mLtcMInv));
-
-            ConstantBuffer::SharedPtr pCoeffCB = mpLightingVars["CoeffCB0"];
-            offset = pCoeffCB->getVariableOffset("coeff0");
-            pCoeffCB->setBlob(&mLtcCoeff, offset, sizeof(mLtcCoeff));
+            mpLightingVars->setTexture("gMinv", mLtcMInv);
+            mpLightingVars->setTexture("gCoeff", mLtcCoeff);
+            mpLightingVars->setSampler("gSampler", mSampler);
         }
 
         // Set camera position

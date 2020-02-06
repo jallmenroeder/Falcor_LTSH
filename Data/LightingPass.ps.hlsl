@@ -58,9 +58,9 @@ cbuffer SampleCB1 { float4 lightSamples1[NumSamples]; };
 cbuffer SampleCB2 { float4 lightSamples2[NumSamples]; };
 cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 
-cbuffer LinMatCB { float4 linTransMatInv[4096]; };
-
-cbuffer CoeffCB0 { float4 coeff0[4096]; };
+SamplerState gSampler;
+Texture2D<float4> gMinv;
+Texture2D<float> gCoeff;
 
 // Debug modes
 #define ShowPos         1
@@ -75,16 +75,6 @@ cbuffer CoeffCB0 { float4 coeff0[4096]; };
 #define LTC             1
 #define LTSH            2
 #define None            3
-
-float3x3 getMInv(int2 indices)
-{
-    float4 matVec = linTransMatInv[indices.x * 64 + indices.y];
-    return transpose(float3x3(
-        1, 0, matVec.x,
-        0, matVec.y, 0,
-        matVec.z, 0, matVec.w
-    ));
-}
 
 // returns a random int in {0, 1, 2, 3} based on a 2d point (texC)
 int rand(float2 co)
@@ -125,8 +115,6 @@ LightSample calculateAreaLightSample(inout ShadingData sd, in LightData light, i
 ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 specularColor)
 {
     ShadingResult sr = initShadingResult();
-    int2 indices = paramToIdx(sd.NdotV, sd.roughness);
-    float coeff = coeff0[indices.x * 64 + indices.y].x;
 
     // diffuse lighting
     float3x3 Identity = float3x3(
@@ -139,14 +127,14 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
 
     // normalize
     sr.diffuse /= 2 * 3.14159;
-    sr.diffuse = saturate(sr.diffuse);
+    sr.diffuse = sr.diffuse;
 
-    float3x3 MInv = getMInv(indices) * coeff;
+    float3x3 MInv = getLtcMatrix(sd.NdotV, sd.roughness);
 
     sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor;
     // Normalization, TODO: check if this is correct
     sr.specular /= 2 * 3.14159 * 3.14159;
-    sr.specular = saturate(sr.specular);
+    sr.specular = sr.specular;
 
     sr.color.rgb = sr.diffuse + sr.specular;
     return sr;
@@ -184,9 +172,9 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sr.specularBrdf = evalSpecularBrdf(sd, ls);
         sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
     }
-    sr.diffuse = saturate(sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity);
-    sr.specular = saturate(sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor);
-    sr.color.rgb = saturate(sr.diffuse + sr.specular);
+    sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity;
+    sr.specular = sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor;
+    sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
 };
