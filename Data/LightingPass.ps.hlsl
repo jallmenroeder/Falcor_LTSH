@@ -139,14 +139,14 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
 
     // normalize
     sr.diffuse /= 2 * 3.14159;
-    sr.diffuse = saturate(sr.diffuse);
+    sr.diffuse = sr.diffuse;
 
     float3x3 MInv = getMInv(indices) * coeff;
 
     sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor;
     // Normalization, TODO: check if this is correct
     sr.specular /= 2 * 3.14159 * 3.14159;
-    sr.specular = saturate(sr.specular);
+    sr.specular = sr.specular;
 
     sr.color.rgb = sr.diffuse + sr.specular;
     return sr;
@@ -184,9 +184,9 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sr.specularBrdf = evalSpecularBrdf(sd, ls);
         sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
     }
-    sr.diffuse = saturate(sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity);
-    sr.specular = saturate(sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor);
-    sr.color.rgb = saturate(sr.diffuse + sr.specular);
+    sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity;
+    sr.specular = sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor;
+    sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
 };
