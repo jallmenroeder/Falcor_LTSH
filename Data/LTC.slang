@@ -2,26 +2,27 @@
 #define _FALCOR_LTC_SLANG_
 
 SamplerState gSampler;
-Texture2D gMinv;
-Texture2D gCoeff;
+Texture2D<float4> gMinv;
+Texture2D<float> gCoeff;
 
 
 float3x3 getLtcMatrix(float cosTheta, float roughness)
 {
-    float l_idx = acos(cosTheta) * 63 / 1.57079;
-    float a_idx = sqrt(roughness) * 63;
+    float l_idx = acos(cosTheta) / 1.57079;
+    float a_idx = sqrt(roughness);
     float2 uv = float2(l_idx, a_idx);
 
     float4 matVec = gMinv.Sample(gSampler, uv);
-    float3x3 mat = transpose(float3x3(
-        1, 0, matVec.x,
+    float3x3 mat = float3x3(
+        1, 0, matVec.z,
         0, matVec.y, 0,
-        matVec.z, 0, matVec.w
-    ));
+        matVec.x, 0, matVec.w
+    );
 
-    mat *= gCoeff.Sample(gSampler, uv).r;
+    mat *= gCoeff.Sample(gSampler, uv);
     return mat;
 }
+
 
 float IntegrateEdge(float3 v1, float3 v2)
 {

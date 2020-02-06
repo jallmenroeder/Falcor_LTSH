@@ -122,4 +122,5 @@ private:
 
     Texture::SharedPtr mLtcMInv;
     Texture::SharedPtr mLtcCoeff;
+    Sampler::SharedPtr mSampler;
 };

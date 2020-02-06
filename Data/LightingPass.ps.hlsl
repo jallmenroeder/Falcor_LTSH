@@ -58,6 +58,10 @@ cbuffer SampleCB1 { float4 lightSamples1[NumSamples]; };
 cbuffer SampleCB2 { float4 lightSamples2[NumSamples]; };
 cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 
+SamplerState gSampler;
+Texture2D<float4> gMinv;
+Texture2D<float> gCoeff;
+
 // Debug modes
 #define ShowPos         1
 #define ShowNormals     2
@@ -238,9 +242,6 @@ Texture2D gGBuf0;
 Texture2D gGBuf1;
 Texture2D gGBuf2;
 Texture2D gGBuf3;
-
-Texture2D gMinv;
-Texture2D gCoeff;
 
 float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
 {

@@ -32,13 +32,32 @@
 const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
-
-void convertVectorDoubleToFloat(const std::vector<double>& in, std::vector<float>& out)
+// convert matrix data read from .npy file to a buffer which can written in the texture
+void convertMInv(const std::vector<double>& in, std::vector<float>& out)
 {
-    out.clear();
-    for (auto val : in)
+    out = std::vector<float>(in.size());
+    for (int i = 0; i < 64; i++)
     {
-        out.push_back(float(val));
+        for (int j = 0; j < 64; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                out[j * 64 * 4 + i * 4 + k] = float(in[i * 64 * 4 + j * 4 + k]);
+            }
+        }
+    }
+}
+
+// convert coefficient data read from .npy file to a buffer which can written in the texture
+void convertLtcCoeff(const std::vector<double>& in, std::vector<float>& out)
+{
+    out = std::vector<float>(in.size());
+    for (int i = 0; i < 64; i++)
+    {
+        for (int j = 0; j < 64; j++)
+        {
+            out[j * 64 + i] = float(in[i * 64 + j]);
+        }
     }
 }
 
@@ -255,14 +274,19 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     std::vector<double> temp = std::vector<double>();
     aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
     std::vector<float> MInv = std::vector<float>();
-    convertVectorDoubleToFloat(temp, MInv);
-    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 64 * 64 * 4, 1u, MInv.data(), Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget);
+    convertMInv(temp, MInv);
+    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, MInv.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
     aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
     std::vector<float> ltcCoeffs = std::vector<float>();
-    convertVectorDoubleToFloat(temp, ltcCoeffs);
-    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R16Float, 64 * 64, 1u, ltcCoeffs.data(), Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget);
+    convertLtcCoeff(temp, ltcCoeffs);
+    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, ltcCoeffs.data(), Resource::BindFlags::ShaderResource);
+
+    // Create Sampler
+    Sampler::Desc desc;
+    desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap);
+    mSampler = Sampler::create(desc);
 
     // Load default model
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
@@ -348,11 +372,8 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
         {
             mpLightingVars->setTexture("gMinv", mLtcMInv);
-            mpLightingVars->setTexture("gCoeff", mLtcCoeff); 
-
-            Sampler::Desc desc;
-            desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap);
-            mpLightingVars->setSampler("gSampler", Sampler::create(desc));
+            mpLightingVars->setTexture("gCoeff", mLtcCoeff);
+            mpLightingVars->setSampler("gSampler", mSampler);
         }
 
         // Set camera position
