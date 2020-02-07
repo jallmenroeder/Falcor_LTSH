@@ -3,7 +3,7 @@
 
 SamplerState gSampler;
 Texture2D<float4> gMinv;
-Texture2D<float> gCoeff;
+Texture2D<float> gLtcCoeff;
 
 
 float3x3 getLtcMatrix(float cosTheta, float roughness)
@@ -19,7 +19,7 @@ float3x3 getLtcMatrix(float cosTheta, float roughness)
         matVec.x, 0, matVec.w
     );
 
-    mat *= gCoeff.Sample(gSampler, uv);
+    mat *= gLtcCoeff.Sample(gSampler, uv);
     return mat;
 }
 

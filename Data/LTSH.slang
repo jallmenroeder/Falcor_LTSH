@@ -1,23 +1,24 @@
-const float PI = 3.14159265f;
-const float INV_PI = 0.31830988618f;
+static float PI = 3.14159265f;
+static float INV_PI = 0.31830988618f;
 
+SamplerState gSampler;
+Texture2D<float4> gMinv;
+Texture2D<float4> gLtshCoeff;
 Texture1D<float4> tex1;
 Texture1D<float4> tex2;
-Texture2D<float4> coeffs0;
-SamplerState samplerState;
 
 void Legendre(float x, out float[9] P) {
 
 	P[1] = x;
 
-    float4 texFetch = tex1.Sample(samplerState, x);
+    float4 texFetch = tex1.Sample(gSampler, x);
     
     P[2] = texFetch.x;
     P[3] = texFetch.y;
     P[4] = texFetch.z;
     P[5] = texFetch.w;
 
-    float4 texFetch2 = tex2.Sample(samplerState, x);
+    float4 texFetch2 = tex2.Sample(gSampler, x);
     
     P[6] = texFetch2.x;
 
@@ -231,30 +232,4 @@ void polygonSH(const in float3 L[5], int numVerts, out float[25] Lcoeff) {
     Lcoeff[24] += dot(float3(0.466450172383, 1.19684418958, -0.158210638771), float3(w22[4], w23[4], w24[4]));
     Lcoeff[24] += dot(float2(0.466416144347, 0.000906975300098), float2(w25[4], w26[4]));
     
-}
-
-
-float get_transfer_color(float Lc[25]) {
-    // Add envmap coefficient colors
-
-    int vInd = int(vIndex) * 21;
-        
-    float col_0 = dot(texelFetchBuffer(LUT_coeffs, vInd ).x, float4(Lc[0], Lc[1], Lc[2], Lc[3]).x);
-    float col_1 = 0.4886025 * dot(texelFetchBuffer(LUT_coeffs, vInd ).yzw, float4(Lc[0], Lc[1], Lc[2], Lc[3]).yzw);
-
-    float col_2 = dot(texelFetchBuffer(LUT_coeffs, vInd + 1 ), float4(Lc[4], Lc[5], Lc[6], Lc[7]));
-    float4 temp = texelFetchBuffer(LUT_coeffs, vInd + 2 );
-    col_2 += temp.x * Lc[8];
-    col_2 *= 0.6307831;
-
-    float col_3 = dot(temp.yzw, float3(Lc[9], Lc[10], Lc[11]));
-    col_3 += dot(texelFetchBuffer(LUT_coeffs, vInd + 3 ), float4(Lc[12], Lc[13], Lc[14], Lc[15]));
-    col_3 *= 0.746353;
-    
-    float col_4 = dot(texelFetchBuffer(LUT_coeffs, vInd + 4 ), float4(Lc[16], Lc[17], Lc[18], Lc[19])) +
-        dot(texelFetchBuffer(LUT_coeffs, vInd + 5 ), float4(Lc[20], Lc[21], Lc[22], Lc[23]));
-    
-    float result = col_0 + col_1 + col_2 + col_3 + col_4;
-    return max(0, result);
-
 }

@@ -29,6 +29,7 @@
 __import ShaderCommon;
 __import Shading;
 __import LTC;
+__import LTSH;
 __import Lights;
 __import BRDF;
 
@@ -60,7 +61,8 @@ cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 
 SamplerState gSampler;
 Texture2D<float4> gMinv;
-Texture2D<float> gCoeff;
+Texture2D<float> gLtcCoeff;
+Texture2D<float4> gLtshCoeff;
 
 // Debug modes
 #define ShowPos         1

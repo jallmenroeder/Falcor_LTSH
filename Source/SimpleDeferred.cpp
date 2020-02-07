@@ -33,30 +33,37 @@ const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fb
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
 // convert matrix data read from .npy file to a buffer which can written in the texture
-void convertMInv(const std::vector<double>& in, std::vector<float>& out)
+void convertDoubleToFloat(const std::vector<double>& in, std::vector<float>& out)
 {
-    out = std::vector<float>(in.size());
-    for (int i = 0; i < 64; i++)
+    out.clear();
+    for (auto val : in)
     {
-        for (int j = 0; j < 64; j++)
-        {
-            for (int k = 0; k < 4; k++)
-            {
-                out[j * 64 * 4 + i * 4 + k] = float(in[i * 64 * 4 + j * 4 + k]);
-            }
-        }
+        out.push_back(float(val));
     }
 }
 
-// convert coefficient data read from .npy file to a buffer which can written in the texture
-void convertLtcCoeff(const std::vector<double>& in, std::vector<float>& out)
+// convert ltsh coefficient data read from .npy file to a buffer which can written in the texture, differs from ltc becaus ltsh has more coefficients
+void convertLtshCoeff(const std::vector<double>& in, std::vector<float>& out)
 {
-    out = std::vector<float>(in.size());
-    for (int i = 0; i < 64; i++)
+    // we only need 25 coefficients but to fit the RGBA texture we pad to 28, this gives 7 64x64 fields containing 4(RGBA) coefficients
+    out = std::vector<float>(64 * 64 * 28);
+    for (size_t i = 0; i < 64; i++)
     {
-        for (int j = 0; j < 64; j++)
+        for (size_t j = 0; j < 64; j++)
         {
-            out[j * 64 + i] = float(in[i * 64 + j]);
+            for (size_t k = 0; k < 28; k++)
+            {
+                // (k / 4) * 4 seems unnecessary but since it is integer division it gives us the right offset
+                size_t offset = (k / 4) * 64 * 4;
+                // add pad value
+                if (k > 24)
+                {
+                    out[i * 64 * 28 + j * 4 + (k % 4) + offset] = 0.f;
+                    continue;
+                }
+                // order has to be rewritten to match texture format
+                out[i * 64 * 28 + j * 4 + (k % 4) + offset] = float(in[i * 64 * 25 + j * 25 + k]);
+            }
         }
     }
 }
@@ -270,18 +277,29 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
 
-    // Load LTC matrices
     std::vector<double> temp = std::vector<double>();
-    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
     std::vector<float> MInv = std::vector<float>();
-    convertMInv(temp, MInv);
+    std::vector<float> coeffs = std::vector<float>();
+
+    // Load LTC matrices
+    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
+    convertDoubleToFloat(temp, MInv);
     mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, MInv.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
     aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
-    std::vector<float> ltcCoeffs = std::vector<float>();
-    convertLtcCoeff(temp, ltcCoeffs);
-    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, ltcCoeffs.data(), Resource::BindFlags::ShaderResource);
+    convertDoubleToFloat(temp, coeffs);
+    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, coeffs.data(), Resource::BindFlags::ShaderResource);
+
+    // Load LTSH matrices
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat.npy", temp);
+    convertDoubleToFloat(temp, MInv);
+    mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, MInv.data(), Resource::BindFlags::ShaderResource);
+
+    // Load LTSH coefficients
+    aoba::LoadArrayFromNumpy("Data/Params/scaled_sh_coeff.npy", temp);
+    convertLtshCoeff(temp, coeffs);
+    mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA32Float, 1, 1, coeffs.data(), Resource::BindFlags::ShaderResource);
 
     // Create Sampler
     Sampler::Desc desc;
@@ -372,9 +390,16 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
         {
             mpLightingVars->setTexture("gMinv", mLtcMInv);
-            mpLightingVars->setTexture("gCoeff", mLtcCoeff);
-            mpLightingVars->setSampler("gSampler", mSampler);
+            mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff);
         }
+        else if (mAreaLightRenderMode == AreaLightRenderMode::LTSH)
+        {
+            mpLightingVars->setTexture("gMinv", mLtshMInv);
+            mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
+        }
+
+        // Set texture sampler
+        mpLightingVars->setSampler("gSampler", mSampler);
 
         // Set camera position
         pLightCB->setVariable("gCamPosW", mpCamera->getPosition());
