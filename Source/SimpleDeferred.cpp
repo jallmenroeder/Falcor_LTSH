@@ -32,6 +32,8 @@
 const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 
+const int legendre_res = 10000;
+
 // convert matrix data read from .npy file to a buffer which can written in the texture
 void convertDoubleToFloat(const std::vector<double>& in, std::vector<float>& out)
 {
@@ -306,6 +308,33 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap);
     mSampler = Sampler::create(desc);
 
+    // Create Textures to read legendre polynomials in ~ O(1)
+    // Code taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/
+    float legendre_2345[legendre_res * 4];
+    float legendre_6789[legendre_res * 4];
+
+    for (int i = 0; i < legendre_res; i++) {
+        float X[10];
+        X[1] = float(i) / legendre_res;
+        for (int j = 2; j < 10; j++) {
+            X[j] = X[j - 1] * X[1];
+        }
+
+        legendre_2345[i * 4]        = (0.5f * (3.f * X[2] - 1.f));
+        legendre_2345[i * 4 + 1]    = (0.5f * (5.f * X[3] - 3.f * X[1]));
+        legendre_2345[i * 4 + 2]    = ((35.f * X[4] - 30.f * X[2] + 3.f) / 8.f);
+        legendre_2345[i * 4 + 3]    = ((63.f * X[5] - 70.f * X[3] + 15.f * X[1]) / 8.f);
+
+        legendre_6789[i * 4]        = ((231.f * X[6] - 315.f * X[4] + 105.f * X[2] - 5.f) / 16.f);
+        legendre_6789[i * 4 + 1]    = ((429.f * X[7] - 693.f * X[5] + 315.f * X[3] - 35.f * X[1]) / 16.f);
+        legendre_6789[i * 4 + 2]    = ((6435.f * X[8] - 12012.f * X[6] + 6930.f * X[4] - 1260.f * X[2] + 35.f) / 128.f);
+        legendre_6789[i * 4 + 3]    = ((12155.f * X[9] - 25740.f * X[7] + 18018.f * X[5] - 4620.f * X[3] + 315.f * X[1]) / 128.f);
+    }
+    // -------------- end of https://cseweb.ucsd.edu/~viscomp/projects/ash/ -----------------------------------------------
+
+    mLegendre2345 = Texture::create1D(legendre_res, ResourceFormat::RGBA32Float, 1, 1, legendre_2345, Resource::BindFlags::ShaderResource);
+    mLegendre6789 = Texture::create1D(legendre_res, ResourceFormat::RGBA32Float, 1, 1, legendre_6789, Resource::BindFlags::ShaderResource);
+
     // Load default model
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
 }
@@ -396,6 +425,8 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         {
             mpLightingVars->setTexture("gMinv", mLtshMInv);
             mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
+            mpLightingVars->setTexture("gLegendre2345", mLegendre2345);
+            mpLightingVars->setTexture("gLegendre6789", mLegendre6789);
         }
 
         // Set texture sampler

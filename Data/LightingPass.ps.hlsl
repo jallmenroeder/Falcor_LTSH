@@ -63,6 +63,8 @@ SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float> gLtcCoeff;
 Texture2D<float4> gLtshCoeff;
+Texture1D<float4> gLegendre2345;
+Texture1D<float4> gLegendre6789;
 
 // Debug modes
 #define ShowPos         1
@@ -142,6 +144,39 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
     return sr;
 }
 
+ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 specularColor)
+{
+    ShadingResult sr = initShadingResult();
+
+    int l_idx = round(acos(sd.NdotV) * 64 / 1.57079);
+    int a_idx = round(sqrt(sd.roughness) * 64);
+
+    float3x3 MInv = getLtshMatrix(sd.NdotV, sd.roughness);
+    
+    // construct orthonormal basis around N
+    float3 T1, T2;
+    T1 = normalize(sd.V - sd.N * sd.NdotV);
+    T2 = cross(sd.N, T1);
+
+    // rotate area light in (T1, T2, R) basis
+    float3x3 baseMat = float3x3(T1, T2, sd.N);
+    MInv = mul(MInv, baseMat);
+
+    float3 lightPos[5];
+    lightPos[0] = normalize(mul(MInv, gAreaLightPosW[0].xyz - sd.posW));
+    lightPos[1] = normalize(mul(MInv, gAreaLightPosW[1].xyz - sd.posW));
+    lightPos[2] = normalize(mul(MInv, gAreaLightPosW[2].xyz - sd.posW));
+    lightPos[3] = normalize(mul(MInv, gAreaLightPosW[3].xyz - sd.posW));
+
+    float Lc[25];
+    polygonSH(lightPos, 4, Lc);
+
+    float cArea = get_transfer_color(Lc, int2(l_idx, a_idx));
+
+    sr.color.rgb = cArea * light.intensity * float3(0.8, 0.3, 0);
+    return sr;
+}
+
 ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, float3 specularColor, int sampleSet)
 {
     ShadingResult sr = initShadingResult();
@@ -215,7 +250,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
         areaResult = evalMaterialAreaLightLTC(sd, gAreaLight, specular);
     else if (gAreaLightRenderMode == LTSH)
         // not implemented yet
-        areaResult = initShadingResult();
+        areaResult = evalMaterialAreaLightLTSH(sd, gAreaLight, specular);
     else if (gAreaLightRenderMode == None)
         areaResult = initShadingResult();
 

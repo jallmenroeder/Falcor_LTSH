@@ -1,31 +1,51 @@
+// code taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang
+
 static float PI = 3.14159265f;
 static float INV_PI = 0.31830988618f;
 
 SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float4> gLtshCoeff;
-Texture1D<float4> tex1;
-Texture1D<float4> tex2;
+Texture1D<float4> gLegendre2345;
+Texture1D<float4> gLegendre6789;
 
 void Legendre(float x, out float[9] P) {
 
-	P[1] = x;
+	P[0] = x;
 
-    float4 texFetch = tex1.Sample(gSampler, x);
+    float4 texFetch = gLegendre2345.Sample(gSampler, x);
     
-    P[2] = texFetch.x;
-    P[3] = texFetch.y;
-    P[4] = texFetch.z;
-    P[5] = texFetch.w;
+    P[1] = texFetch.x;
+    P[2] = texFetch.y;
+    P[3] = texFetch.z;
+    P[4] = texFetch.w;
 
-    float4 texFetch2 = tex2.Sample(gSampler, x);
+    float4 texFetch2 = gLegendre6789.Sample(gSampler, x);
     
-    P[6] = texFetch2.x;
+    P[5] = texFetch2.x;
+    P[6] = texFetch2.y;
+    P[7] = texFetch2.z;
+    P[8] = texFetch2.w;
 
     if (x < 0) {
-        P[3] = -P[3];
-        P[5] = -P[5];
+        P[2] = -P[2];
+        P[4] = -P[4];
     }
+}
+
+float3x3 getLtshMatrix(float cosTheta, float roughness)
+{
+    float l_idx = acos(cosTheta) / 1.57079;
+    float a_idx = sqrt(roughness);
+    float2 uv = float2(l_idx, a_idx);
+
+    float4 matVec = gMinv.Sample(gSampler, uv);
+    float3x3 mat = float3x3(
+        1, 0, matVec.z,
+        0, matVec.y, 0,
+        matVec.x, 0, matVec.w
+    );
+    return mat;
 }
 
 
@@ -232,4 +252,38 @@ void polygonSH(const in float3 L[5], int numVerts, out float[25] Lcoeff) {
     Lcoeff[24] += dot(float3(0.466450172383, 1.19684418958, -0.158210638771), float3(w22[4], w23[4], w24[4]));
     Lcoeff[24] += dot(float2(0.466416144347, 0.000906975300098), float2(w25[4], w26[4]));
     
+}
+
+float get_transfer_color(float Lc[25], int2 light_alpha_idx) {
+    // Add envmap coefficient colors
+    int3 idx = int3(light_alpha_idx, 0);
+        
+    float col_0 = gLtshCoeff.Load(idx).x * Lc[0];
+    float col_1 = 0.4886025 * dot(gLtshCoeff.Load(idx).yzw, float4(Lc[0], Lc[1], Lc[2], Lc[3]).yzw);
+
+    idx.x += 64;
+    float col_2 = dot(gLtshCoeff.Load(idx), float4(Lc[4], Lc[5], Lc[6], Lc[7]));
+    idx.x += 64;
+    float4 temp = gLtshCoeff.Load(idx);
+    col_2 += temp.x * Lc[8];
+    col_2 *= 0.6307831;
+
+    float col_3 = dot(temp.yzw, float3(Lc[9], Lc[10], Lc[11]));
+    idx.x += 64;
+    col_3 += dot(gLtshCoeff.Load(idx), float4(Lc[12], Lc[13], Lc[14], Lc[15]));
+    col_3 *= 0.746353;
+    
+    idx.x += 64;
+    float col_4 = dot(gLtshCoeff.Load(idx), float4(Lc[16], Lc[17], Lc[18], Lc[19]));
+    idx.x += 64;
+    col_4 += dot(gLtshCoeff.Load(idx), float4(Lc[20], Lc[21], Lc[22], Lc[23]));
+    
+    idx.x += 64;
+    float4 temp2 = gLtshCoeff.Load(idx);
+    col_4 += temp2.x * Lc[24];
+    col_4 *= 0.8462844; 
+    
+    float result = col_0 + col_1 + col_2 + col_3 + col_4;
+    return max(0, result);
+
 }
