@@ -280,28 +280,33 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
 
     std::vector<double> temp = std::vector<double>();
-    std::vector<float> MInv = std::vector<float>();
-    std::vector<float> coeffs = std::vector<float>();
+    std::vector<float> data = std::vector<float>();
+
 
     // Load LTC matrices
     aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
-    convertDoubleToFloat(temp, MInv);
-    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, MInv.data(), Resource::BindFlags::ShaderResource);
+    convertDoubleToFloat(temp, data);
+    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
     aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
-    convertDoubleToFloat(temp, coeffs);
-    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, coeffs.data(), Resource::BindFlags::ShaderResource);
+    convertDoubleToFloat(temp, data);
+    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH matrices
     aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat.npy", temp);
-    convertDoubleToFloat(temp, MInv);
-    mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, MInv.data(), Resource::BindFlags::ShaderResource);
+    convertDoubleToFloat(temp, data);
+    mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+
+    // Load scale (due to normalization of matrix)
+    aoba::LoadArrayFromNumpy("Data/Params/scaled_sh_coeff.npy", temp);
+    convertDoubleToFloat(temp, data);
+    mLtshScale = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients
-    aoba::LoadArrayFromNumpy("Data/Params/scaled_sh_coeff.npy", temp);
-    convertLtshCoeff(temp, coeffs);
-    mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA32Float, 1, 1, coeffs.data(), Resource::BindFlags::ShaderResource);
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff.npy", temp);
+    convertLtshCoeff(temp, data);
+    mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Create Sampler
     Sampler::Desc desc;
@@ -311,7 +316,6 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     // Create Textures to read legendre polynomials in ~ O(1)
     // Code taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/
     float legendre_2345[legendre_res * 4];
-    float legendre_6789[legendre_res * 4];
 
     for (int i = 0; i < legendre_res; i++) {
         float X[10];
@@ -324,16 +328,10 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
         legendre_2345[i * 4 + 1]    = (0.5f * (5.f * X[3] - 3.f * X[1]));
         legendre_2345[i * 4 + 2]    = ((35.f * X[4] - 30.f * X[2] + 3.f) / 8.f);
         legendre_2345[i * 4 + 3]    = ((63.f * X[5] - 70.f * X[3] + 15.f * X[1]) / 8.f);
-
-        legendre_6789[i * 4]        = ((231.f * X[6] - 315.f * X[4] + 105.f * X[2] - 5.f) / 16.f);
-        legendre_6789[i * 4 + 1]    = ((429.f * X[7] - 693.f * X[5] + 315.f * X[3] - 35.f * X[1]) / 16.f);
-        legendre_6789[i * 4 + 2]    = ((6435.f * X[8] - 12012.f * X[6] + 6930.f * X[4] - 1260.f * X[2] + 35.f) / 128.f);
-        legendre_6789[i * 4 + 3]    = ((12155.f * X[9] - 25740.f * X[7] + 18018.f * X[5] - 4620.f * X[3] + 315.f * X[1]) / 128.f);
     }
     // -------------- end of https://cseweb.ucsd.edu/~viscomp/projects/ash/ -----------------------------------------------
 
     mLegendre2345 = Texture::create1D(legendre_res, ResourceFormat::RGBA32Float, 1, 1, legendre_2345, Resource::BindFlags::ShaderResource);
-    mLegendre6789 = Texture::create1D(legendre_res, ResourceFormat::RGBA32Float, 1, 1, legendre_6789, Resource::BindFlags::ShaderResource);
 
     // Load default model
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
@@ -419,14 +417,14 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
         {
             mpLightingVars->setTexture("gMinv", mLtcMInv);
-            mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff);
+            mpLightingVars->setTexture("gScale", mLtcCoeff);
         }
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTSH)
         {
             mpLightingVars->setTexture("gMinv", mLtshMInv);
+            mpLightingVars->setTexture("gScale", mLtshScale);
             mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
             mpLightingVars->setTexture("gLegendre2345", mLegendre2345);
-            mpLightingVars->setTexture("gLegendre6789", mLegendre6789);
         }
 
         // Set texture sampler

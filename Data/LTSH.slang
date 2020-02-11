@@ -7,57 +7,31 @@ SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float4> gLtshCoeff;
 Texture1D<float4> gLegendre2345;
-Texture1D<float4> gLegendre6789;
 
-void Legendre(float x, out float[9] P) {
+void Legendre(float x, out float[4] P) {
 
-	P[0] = x;
+    P[0] = 0;
+	P[1] = x;
 
     float4 texFetch = gLegendre2345.Sample(gSampler, x);
     
-    P[1] = texFetch.x;
-    P[2] = texFetch.y;
-    P[3] = texFetch.z;
-    P[4] = texFetch.w;
-
-    float4 texFetch2 = gLegendre6789.Sample(gSampler, x);
-    
-    P[5] = texFetch2.x;
-    P[6] = texFetch2.y;
-    P[7] = texFetch2.z;
-    P[8] = texFetch2.w;
+    P[2] = texFetch.x;
+    P[3] = texFetch.y;
 
     if (x < 0) {
-        P[2] = -P[2];
-        P[4] = -P[4];
+        P[3] = -P[3];
     }
 }
 
-float3x3 getLtshMatrix(float cosTheta, float roughness)
-{
-    float l_idx = acos(cosTheta) / 1.57079;
-    float a_idx = sqrt(roughness);
-    float2 uv = float2(l_idx, a_idx);
-
-    float4 matVec = gMinv.Sample(gSampler, uv);
-    float3x3 mat = float3x3(
-        1, 0, matVec.z,
-        0, matVec.y, 0,
-        matVec.x, 0, matVec.w
-    );
-    return mat;
-}
-
-
-void boundary(float a, float b, float x, int maxN, out float[9] B_n) {
+void boundary(float a, float b, float x, int maxN, out float[5] B_n) {
     
     float z = a*cos(x) + b*sin(x);
     float tmp1 = a*sin(x) - b*cos(x);
     float tmp2 = a*a+b*b-1;
     
-    float P[9]; 
+    float P[4]; 
     Legendre(z, P);
-    float Pa[9];
+    float Pa[4];
     Legendre(a, Pa);
     
     B_n[0] = x;
@@ -83,11 +57,11 @@ void boundary(float a, float b, float x, int maxN, out float[9] B_n) {
 
 
 void evalLight(float3 dir, float3 verts[5], float3 gam[5], float3 gamP[5],
-                    int maxN, int numVerts, out float[9] surf) {
+                    int maxN, int numVerts, out float[5] surf) {
     
-    float total[9];
+    float total[5];
 
-	float bound[9];
+	float bound[5];
     boundary(dot(dir, verts[0]), dot(dir, gamP[0]), acos(dot(verts[0], verts[1])), maxN, bound);
 	for (int n = 0; n < maxN; n++) {
 		total[n] = bound[n] * dot(dir, gam[0]);
@@ -120,14 +94,11 @@ void evalLight(float3 dir, float3 verts[5], float3 gam[5], float3 gamP[5],
         }
     }
 
+    surf[0] = 0;
     surf[1] = 0.5 * total[0];
     surf[2] = 0.5 * total[1];
     surf[3] = dot(float2(0.416667, 0.166667), float2(total[2], surf[1]));
     surf[4] = dot(float2(0.35, 0.3), float2(total[3], surf[2]));
-    surf[5] = dot(float2(0.3, 0.4), float2(total[4], surf[3]));
-    surf[6] = dot(float2(0.261905, 0.476190), float2(total[5], surf[4]));
-    surf[7] = dot(float2(0.232143, 0.535714), float2(total[6], surf[5]));
-    surf[8] = dot(float2(0.208333, 0.583333), float2(total[7], surf[6]));
 }
 
 float solid_angle(float3 verts[5], int numVerts) {
@@ -185,7 +156,7 @@ void polygonSH(const in float3 L[5], int numVerts, out float[25] Lcoeff) {
 
     
     float SA = solid_angle(L, numVerts);
-    int max_order = 8;
+    int max_order = 4;
     
     for (int i = 0; i < 25; i++) {
         Lcoeff[i] = 0;
@@ -194,23 +165,23 @@ void polygonSH(const in float3 L[5], int numVerts, out float[25] Lcoeff) {
     // Optimal lobe weights for bands 0 and 1
     Lcoeff[0] = 0.282095 * SA;
 
-    float w20[9];
+    float w20[5];
     evalLight((float3(0.866025, -0.500001, -0.000004)), L, G, Gp, max_order, numVerts, w20);
-    float w21[9];
+    float w21[5];
     evalLight((float3(-0.759553, 0.438522, -0.480394)), L, G, Gp, max_order, numVerts, w21);
-    float w22[9];
+    float w22[5];
     evalLight((float3(-0.000002, 0.638694, 0.769461)), L, G, Gp, max_order, numVerts, w22);
-    float w23[9];
+    float w23[5];
     evalLight((float3(-0.000004, -1.000000, -0.000004)), L, G, Gp, max_order, numVerts, w23);
-    float w24[9];
+    float w24[5];
     evalLight((float3(-0.000007, 0.000003, -1.000000)), L, G, Gp, max_order, numVerts, w24);
-    float w25[9];
+    float w25[5];
     evalLight((float3(-0.000002, -0.638694, 0.769461)), L, G, Gp, max_order, numVerts, w25);
-    float w26[9];
+    float w26[5];
     evalLight((float3(-0.974097, 0.000007, -0.226131)), L, G, Gp, max_order, numVerts, w26);
-    float w27[9];
+    float w27[5];
     evalLight((float3(-0.000003, 0.907079, -0.420960)), L, G, Gp, max_order, numVerts, w27);
-    float w28[9];
+    float w28[5];
     evalLight((float3(-0.960778, 0.000007, -0.277320)), L, G, Gp, max_order, numVerts, w28);
 
 	Lcoeff[1] = dot(float3(2.1995339, 2.50785367, 1.56572711), float3(w20[1], w21[1], w22[1]));

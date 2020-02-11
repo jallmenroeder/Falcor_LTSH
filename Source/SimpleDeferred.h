@@ -125,8 +125,8 @@ private:
     Sampler::SharedPtr mSampler;
 
     Texture::SharedPtr mLtshMInv;
+    Texture::SharedPtr mLtshScale;
     Texture::SharedPtr mLtshCoeff;
 
     Texture::SharedPtr mLegendre2345;
-    Texture::SharedPtr mLegendre6789;
 };
