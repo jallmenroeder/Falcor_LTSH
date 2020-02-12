@@ -371,10 +371,11 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         } 
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
         {
-            mpLightingVars->setTexture("gMinv", mLtcMInv);
-            mpLightingVars->setTexture("gCoeff", mLtcCoeff);
-            mpLightingVars->setSampler("gSampler", mSampler);
         }
+        // TODO: move back to LTC branch
+        mpLightingVars->setTexture("gMinv", mLtcMInv);
+        mpLightingVars->setTexture("gCoeff", mLtcCoeff);
+        mpLightingVars->setSampler("gSampler", mSampler);
 
         // Set camera position
         pLightCB->setVariable("gCamPosW", mpCamera->getPosition());

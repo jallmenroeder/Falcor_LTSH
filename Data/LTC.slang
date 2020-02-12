@@ -1,6 +1,9 @@
 #ifndef _FALCOR_LTC_SLANG_
 #define _FALCOR_LTC_SLANG_
 
+__import ShaderCommon;
+__import Lights;
+
 SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float> gCoeff;
@@ -198,6 +201,12 @@ float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float4 points[4
     Lo_i *= lightIntensity;
 
     return Lo_i;
+}
+
+float3 evalLtcBrdf(ShadingData sd, LightSample ls, float3x3 Minv) {
+
+    float3 L = normalize(mul(Minv, ls.L));
+    return saturate(float3(L.z, L.z, L.z));
 }
 
 #endif	// _FALCOR_LTC_SLANG_

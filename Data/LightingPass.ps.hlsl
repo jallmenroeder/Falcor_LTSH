@@ -127,14 +127,12 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
 
     // normalize
     sr.diffuse /= 2 * 3.14159;
-    sr.diffuse = sr.diffuse;
 
     float3x3 MInv = getLtcMatrix(sd.NdotV, sd.roughness);
 
     sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor;
     // Normalization, TODO: check if this is correct
     sr.specular /= 2 * 3.14159 * 3.14159;
-    sr.specular = sr.specular;
 
     sr.color.rgb = sr.diffuse + sr.specular;
     return sr;
@@ -143,6 +141,15 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
 ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, float3 specularColor, int sampleSet)
 {
     ShadingResult sr = initShadingResult();
+
+    float3x3 Minv = getLtcMatrix(sd.NdotV, sd.roughness);
+    float3 T1, T2;
+    T1 = normalize(sd.V - sd.N * sd.NdotV);
+    T2 = cross(sd.N, T1);
+
+    // rotate area light in (T1, T2, R) basis
+    float3x3 baseMat = float3x3(T1, T2, sd.N);
+    Minv = mul(Minv, baseMat);
 
     // Do Lighting for every Sample
     for (int i = 0; i < NumSamples / SampleReductionFactor; i++)
@@ -169,11 +176,12 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sr.diffuse += ls.diffuse * sr.diffuseBrdf * ls.NdotL;
 
         // Calculate the specular term
-        sr.specularBrdf = evalSpecularBrdf(sd, ls);
-        sr.specular += ls.specular * sr.specularBrdf * ls.NdotL;
+        sr.specularBrdf = evalLtcBrdf(sd, ls, Minv);
+        sr.specular += ls.specular * sr.specularBrdf;
     }
     sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity;
     sr.specular = sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor;
+    sr.specular /= 3.14159;
     sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
