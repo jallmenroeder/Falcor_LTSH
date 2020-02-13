@@ -289,7 +289,7 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
-    aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/cos_coeff.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
@@ -297,11 +297,6 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
-
-    // Load scale (due to normalization of matrix)
-    aoba::LoadArrayFromNumpy("Data/Params/scaled_sh_coeff.npy", temp);
-    convertDoubleToFloat(temp, data);
-    mLtshScale = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients
     aoba::LoadArrayFromNumpy("Data/Params/sh_coeff.npy", temp);
@@ -416,16 +411,16 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         } 
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
         {
-            mpLightingVars->setTexture("gMinv", mLtcMInv);
-            mpLightingVars->setTexture("gScale", mLtcCoeff);
         }
         else if (mAreaLightRenderMode == AreaLightRenderMode::LTSH)
         {
             mpLightingVars->setTexture("gMinv", mLtshMInv);
-            mpLightingVars->setTexture("gScale", mLtshScale);
             mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
             mpLightingVars->setTexture("gLegendre2345", mLegendre2345);
         }
+        // TODO: move back to LTC branch
+        mpLightingVars->setTexture("gMinv", mLtcMInv);
+        mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff);
 
         // Set texture sampler
         mpLightingVars->setSampler("gSampler", mSampler);

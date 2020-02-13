@@ -1,9 +1,12 @@
 #ifndef _FALCOR_LTC_SLANG_
 #define _FALCOR_LTC_SLANG_
 
+__import ShaderCommon;
+__import Lights;
+
 SamplerState gSampler;
 Texture2D<float4> gMinv;
-Texture2D<float> gScale;
+Texture2D<float> gLtcCoeff;
 
 
 float3x3 getMatrix(float cosTheta, float roughness)
@@ -19,8 +22,15 @@ float3x3 getMatrix(float cosTheta, float roughness)
         matVec.x, 0, matVec.w
     );
 
-    mat *= gScale.Sample(gSampler, uv);
     return mat;
+}
+
+float getCoeff(float cosTheta, float roughness) {
+    float l_idx = acos(cosTheta) / 1.57079;
+    float a_idx = sqrt(roughness);
+    float2 uv = float2(l_idx, a_idx);
+
+    return gLtcCoeff.Sample(gSampler, uv);
 }
 
 
@@ -198,6 +208,12 @@ float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float4 points[4
     Lo_i *= lightIntensity;
 
     return Lo_i;
+}
+
+float3 evalLtcBrdf(ShadingData sd, LightSample ls, float3x3 MInv) {
+
+    float3 L = normalize(mul(MInv, ls.L));
+    return saturate(float3(L.z, L.z, L.z));
 }
 
 #endif	// _FALCOR_LTC_SLANG_
