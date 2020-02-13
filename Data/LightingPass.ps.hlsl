@@ -234,7 +234,7 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
     }
     sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity;
     sr.specular = sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor;
-    // sr.specular /= 3.14159;
+    sr.specular /= 3.14159;
     sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;

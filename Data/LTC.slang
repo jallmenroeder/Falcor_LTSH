@@ -212,8 +212,13 @@ float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float4 points[4
 
 float3 evalLtcBrdf(ShadingData sd, LightSample ls, float3x3 MInv) {
 
-    float3 L = normalize(mul(MInv, ls.L));
-    return saturate(float3(L.z, L.z, L.z));
+    float3 LInv = mul(MInv, ls.L);
+    float D = abs(determinant(MInv));
+    float L_ = length(LInv);
+    float jacob = D / (L_ * L_ * L_);
+
+    LInv = normalize(LInv);
+    return saturate(float3(LInv.z, LInv.z, LInv.z)) * jacob;
 }
 
 #endif	// _FALCOR_LTC_SLANG_
