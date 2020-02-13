@@ -1,4 +1,10 @@
+#ifndef _FALCOR_LTSH_SLANG_
+#define _FALCOR_LTSH_SLANG_
+
 // code taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang
+
+__import ShaderCommon;
+__import Lights;
 
 static float PI = 3.14159265f;
 static float INV_PI = 0.31830988618f;
@@ -7,6 +13,24 @@ SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float4> gLtshCoeff;
 Texture1D<float4> gLegendre2345;
+
+void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
+    int l_idx = round(acos(cosTheta) * 64.f / 1.57079);
+    int a_idx = round(sqrt(roughness) * 64.f);
+    int3 coords = int3(l_idx, a_idx, 0);
+
+    float4 texFetch;
+
+    for (int i = 0; i < 6; i++) {
+        texFetch = gLtshCoeff.Load(coords);
+        coeffs[i * 4 + 0] = texFetch.r;
+        coeffs[i * 4 + 1] = texFetch.g;
+        coeffs[i * 4 + 2] = texFetch.b;
+        coeffs[i * 4 + 3] = texFetch.a;
+        coords.x += 64;
+    }
+    coeffs[24] = gLtshCoeff.Load(coords).r;
+}
 
 void Legendre(float x, out float[4] P) {
 
@@ -258,3 +282,86 @@ float get_transfer_color(float Lc[25], int2 light_alpha_idx) {
     return max(0, result);
 
 }
+
+float evaluateSH(float x, float y, float z, float[25] coefficients) {
+    float legendre0_0 = 1.0;
+    float legendre1_0 = 1.00000000000000000e+00 * z * legendre0_0;
+    float legendre1_1 = -1.00000000000000000e+00 * legendre0_0;
+    float legendre2_0 = 1.50000000000000000e+00 * z * legendre1_0 - 
+    5.00000000000000000e-01 * legendre0_0;
+    float legendre2_1 = 3.00000000000000000e+00 * z * legendre1_1;
+    float legendre2_2 = -3.00000000000000000e+00 * legendre1_1;
+    float legendre3_0 = 1.66666666666666674e+00 * z * legendre2_0 - 
+    6.66666666666666630e-01 * legendre1_0;
+    float legendre3_1 = 2.50000000000000000e+00 * z * legendre2_1 - 
+    1.50000000000000000e+00 * legendre1_1;
+    float legendre3_2 = 5.00000000000000000e+00 * z * legendre2_2;
+    float legendre3_3 = -5.00000000000000000e+00 * legendre2_2;
+    float legendre4_0 = 1.75000000000000000e+00 * z * legendre3_0 - 
+    7.50000000000000000e-01 * legendre2_0;
+    float legendre4_1 = 2.33333333333333348e+00 * z * legendre3_1 - 
+    1.33333333333333326e+00 * legendre2_1;
+    float legendre4_2 = 3.50000000000000000e+00 * z * legendre3_2 - 
+    2.50000000000000000e+00 * legendre2_2;
+    float legendre4_3 = 7.00000000000000000e+00 * z * legendre3_3;
+    float legendre4_4 = -7.00000000000000000e+00 * legendre3_3;
+    float cosine0 = 1.0;
+    float sine0 = 0.0;
+    float cosine1 = x * cosine0 - y * sine0;
+    float sine1 = x * sine0 + y * cosine0;
+    float cosine2 = x * cosine1 - y * sine1;
+    float sine2 = x * sine1 + y * cosine1;
+    float cosine3 = x * cosine2 - y * sine2;
+    float sine3 = x * sine2 + y * cosine2;
+    float cosine4 = x * cosine3 - y * sine3;
+    float sine4 = x * sine3 + y * cosine3;
+
+    float pSH[25];
+
+    pSH[0] = 2.82094791773878140e-01 * cosine0 * legendre0_0;
+    pSH[1] = 4.88602511902919923e-01 * sine1 * legendre1_1;
+    pSH[2] = 4.88602511902919923e-01 * cosine0 * legendre1_0;
+    pSH[3] = 4.88602511902919923e-01 * cosine1 * legendre1_1;
+    pSH[4] = 1.82091405098679854e-01 * sine2 * legendre2_2;
+    pSH[5] = 3.64182810197359708e-01 * sine1 * legendre2_1;
+    pSH[6] = 6.30783130505040091e-01 * cosine0 * legendre2_0;
+    pSH[7] = 3.64182810197359708e-01 * cosine1 * legendre2_1;
+    pSH[8] = 1.82091405098679854e-01 * cosine2 * legendre2_2;
+    pSH[9] = 3.93362393284428999e-02 * sine3 * legendre3_3;
+    pSH[10] = 9.63537147546851408e-02 * sine2 * legendre3_2;
+    pSH[11] = 3.04697199642977146e-01 * sine1 * legendre3_1;
+    pSH[12] = 7.46352665180230801e-01 * cosine0 * legendre3_0;
+    pSH[13] = 3.04697199642977146e-01 * cosine1 * legendre3_1;
+    pSH[14] = 9.63537147546851408e-02 * cosine2 * legendre3_2;
+    pSH[15] = 3.93362393284428999e-02 * cosine3 * legendre3_3;
+    pSH[16] = 5.96034033761120175e-03 * sine4 * legendre4_4;
+    pSH[17] = 1.68583882836183876e-02 * sine3 * legendre4_3;
+    pSH[18] = 6.30783130505040007e-02 * sine2 * legendre4_2;
+    pSH[19] = 2.67618617422915650e-01 * sine1 * legendre4_1;
+    pSH[20] = 8.46284375321634474e-01 * cosine0 * legendre4_0;
+    pSH[21] = 2.67618617422915650e-01 * cosine1 * legendre4_1;
+    pSH[22] = 6.30783130505040007e-02 * cosine2 * legendre4_2;
+    pSH[23] = 1.68583882836183876e-02 * cosine3 * legendre4_3;
+    pSH[24] = 5.96034033761120175e-03 * cosine4 * legendre4_4;
+
+    float sum = 0;
+
+    for (int i = 0; i < 25; i++) {
+        sum += pSH[i] * coefficients[i];
+    }
+    return sum;
+}
+
+float3 evalLtshBrdf(ShadingData sd, LightSample ls, float3x3 MInv, float[25] coefficients) {
+    float3 LInv = mul(MInv, ls.L);
+    float D = abs(determinant(MInv));
+    float L_ = length(LInv);
+    float jacob = D / (L_ * L_ * L_);
+
+    LInv = normalize(LInv);
+
+    float val = evaluateSH(LInv.x, LInv.y, LInv.z, coefficients) * jacob;
+    return float3(val, val, val);
+}
+
+#endif	// _FALCOR_LTSH_SLANG_

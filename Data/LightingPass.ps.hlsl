@@ -197,7 +197,10 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
     ShadingResult sr = initShadingResult();
 
     float3x3 MInv = getMatrix(sd.NdotV, sd.roughness);
-    float coeff = getCoeff(sd.NdotV, sd.roughness);
+    float ltshCoeffs[25];
+    getLtshCoeffs(sd.NdotV, sd.roughness, ltshCoeffs);
+
+    float cosCoeff = getCoeff(sd.NdotV, sd.roughness);
     float3 T1, T2;
     T1 = normalize(sd.V - sd.N * sd.NdotV);
     T2 = cross(sd.N, T1);
@@ -231,8 +234,9 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sr.diffuse += ls.diffuse * sr.diffuseBrdf * ls.NdotL;
 
         // Calculate the specular term
-        if (gAreaLightRenderMode == LtcBrdf) sr.specularBrdf = evalLtcBrdf(sd, ls, MInv) * coeff;
-        else sr.specularBrdf = evalSpecularBrdf(sd, ls) * ls.NdotL;
+        if (gAreaLightRenderMode == LtcBrdf)            sr.specularBrdf = evalLtcBrdf(sd, ls, MInv) * cosCoeff;
+        else if (gAreaLightRenderMode == LtshBrdf)      sr.specularBrdf = evalLtshBrdf(sd, ls, MInv, ltshCoeffs);
+        else if (gAreaLightRenderMode == GroundTruth)   sr.specularBrdf = evalSpecularBrdf(sd, ls) * ls.NdotL;
         sr.specular += ls.specular * sr.specularBrdf;
     }
     sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity;
@@ -264,20 +268,19 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
 
     // sd.specular is used as F0 in BRDF.slang and needs to be fixed four our technique
     sd.specular = .4f;
-    sd.roughness = roughness;
+    sd.roughness = max(roughness, .1f);
 
     /* Do lighting */
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
     ShadingResult areaResult;
-    if (gAreaLightRenderMode == GroundTruth || gAreaLightRenderMode == LtcBrdf)
+    if (gAreaLightRenderMode == GroundTruth || gAreaLightRenderMode == LtcBrdf || gAreaLightRenderMode == LtshBrdf)
         areaResult = evalMaterialAreaLightGroundTruth(sd, gAreaLight, specular, sampleSet);
     else if (gAreaLightRenderMode == LTC)
         areaResult = evalMaterialAreaLightLTC(sd, gAreaLight, specular);
     else if (gAreaLightRenderMode == LTSH)
-        // not implemented yet
         areaResult = evalMaterialAreaLightLTSH(sd, gAreaLight, specular);
-    else if (gAreaLightRenderMode == None || gAreaLightRenderMode == LtshBrdf)
+    else if (gAreaLightRenderMode == None)
         areaResult = initShadingResult();
 
     float3 result;

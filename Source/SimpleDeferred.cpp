@@ -411,18 +411,17 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
                 mpAreaLight->setSamplesIntoProgramVars(pSampleCB[i].get(), varNames[i], i);
             }
         } 
-        else if (mAreaLightRenderMode == AreaLightRenderMode::LTC)
+        else if (mAreaLightRenderMode == AreaLightRenderMode::LTC || mAreaLightRenderMode == AreaLightRenderMode::LtcBrdf)
         {
+            mpLightingVars->setTexture("gMinv", mLtcMInv);
+            mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff);
         }
-        else if (mAreaLightRenderMode == AreaLightRenderMode::LTSH)
+        else if (mAreaLightRenderMode == AreaLightRenderMode::LTSH || mAreaLightRenderMode == AreaLightRenderMode::LtshBrdf)
         {
             mpLightingVars->setTexture("gMinv", mLtshMInv);
             mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
             mpLightingVars->setTexture("gLegendre2345", mLegendre2345);
         }
-        // TODO: move back to LTC branch
-        mpLightingVars->setTexture("gMinv", mLtcMInv);
-        mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff);
 
         // Set texture sampler
         mpLightingVars->setSampler("gSampler", mSampler);
