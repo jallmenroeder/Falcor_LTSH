@@ -22,8 +22,15 @@ float3x3 getLtcMatrix(float cosTheta, float roughness)
         matVec.x, 0, matVec.w
     );
 
-    mat *= gCoeff.Sample(gSampler, uv);
     return mat;
+}
+
+float getCoeff(float cosTheta, float roughness) {
+    float l_idx = acos(cosTheta) / 1.57079;
+    float a_idx = sqrt(roughness);
+    float2 uv = float2(l_idx, a_idx);
+
+    return gCoeff.Sample(gSampler, uv);
 }
 
 

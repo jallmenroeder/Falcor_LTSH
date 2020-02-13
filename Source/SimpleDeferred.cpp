@@ -278,7 +278,7 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, MInv.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
-    aoba::LoadArrayFromNumpy("Data/Params/scaled_cos_coeff.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/cos_coeff.npy", temp);
     std::vector<float> ltcCoeffs = std::vector<float>();
     convertLtcCoeff(temp, ltcCoeffs);
     mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, ltcCoeffs.data(), Resource::BindFlags::ShaderResource);
