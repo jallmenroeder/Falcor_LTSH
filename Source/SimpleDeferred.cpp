@@ -149,6 +149,8 @@ void SimpleDeferred::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
     areaLightRenderModeList.push_back({ 1, "LTC" });
     areaLightRenderModeList.push_back({ 2, "LTSH" });
     areaLightRenderModeList.push_back({ 3, "None" });
+    areaLightRenderModeList.push_back({ 4, "GT with LTC BRDF" });
+    areaLightRenderModeList.push_back({ 5, "GT with LTSH BRDF" });
     pGui->addDropdown("Area Light Render Mode", areaLightRenderModeList, (uint32_t&)mAreaLightRenderMode);
 
     Gui::DropdownList cullList;

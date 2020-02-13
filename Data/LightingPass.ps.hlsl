@@ -78,6 +78,8 @@ Texture1D<float4> gLegendre2345;
 #define LTC             1
 #define LTSH            2
 #define None            3
+#define LtcBrdf         4
+#define LtshBrdf        5
 
 // returns a random int in {0, 1, 2, 3} based on a 2d point (texC)
 int rand(float2 co)
@@ -229,12 +231,12 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
         sr.diffuse += ls.diffuse * sr.diffuseBrdf * ls.NdotL;
 
         // Calculate the specular term
-        sr.specularBrdf = evalLtcBrdf(sd, ls, MInv);
-        sr.specular += ls.specular * sr.specularBrdf * coeff;
+        if (gAreaLightRenderMode == LtcBrdf) sr.specularBrdf = evalLtcBrdf(sd, ls, MInv) * coeff;
+        else sr.specularBrdf = evalSpecularBrdf(sd, ls) * ls.NdotL;
+        sr.specular += ls.specular * sr.specularBrdf;
     }
     sr.diffuse = sr.diffuse * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity;
     sr.specular = sr.specular * SampleReductionFactor / (float)NumSamples * light.surfaceArea * light.intensity * specularColor;
-    sr.specular /= 3.14159;
     sr.color.rgb = sr.diffuse + sr.specular;
 
     return sr;
@@ -268,14 +270,14 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     ShadingResult dirResult = evalMaterial(sd, gDirLight, 1);
     ShadingResult pointResult = evalMaterial(sd, gPointLight, 1);
     ShadingResult areaResult;
-    if (gAreaLightRenderMode == GroundTruth)
+    if (gAreaLightRenderMode == GroundTruth || gAreaLightRenderMode == LtcBrdf)
         areaResult = evalMaterialAreaLightGroundTruth(sd, gAreaLight, specular, sampleSet);
     else if (gAreaLightRenderMode == LTC)
         areaResult = evalMaterialAreaLightLTC(sd, gAreaLight, specular);
     else if (gAreaLightRenderMode == LTSH)
         // not implemented yet
         areaResult = evalMaterialAreaLightLTSH(sd, gAreaLight, specular);
-    else if (gAreaLightRenderMode == None)
+    else if (gAreaLightRenderMode == None || gAreaLightRenderMode == LtshBrdf)
         areaResult = initShadingResult();
 
     float3 result;

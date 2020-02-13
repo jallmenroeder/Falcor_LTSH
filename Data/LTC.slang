@@ -218,7 +218,7 @@ float3 evalLtcBrdf(ShadingData sd, LightSample ls, float3x3 MInv) {
     float jacob = D / (L_ * L_ * L_);
 
     LInv = normalize(LInv);
-    return saturate(float3(LInv.z, LInv.z, LInv.z)) * jacob;
+    return saturate(float3(LInv.z, LInv.z, LInv.z)) * jacob  / 3.14159f;
 }
 
 #endif	// _FALCOR_LTC_SLANG_

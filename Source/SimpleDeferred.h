@@ -99,6 +99,8 @@ private:
         LTC,
         LTSH,
         Disabled,
+        LtcBrdf,
+        LtshBrdf,
     } mAreaLightRenderMode = AreaLightRenderMode::GroundTruth;
 
     DepthStencilState::SharedPtr mpNoDepthDS;
