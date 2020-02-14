@@ -1,6 +1,8 @@
 #ifndef _FALCOR_LTC_SLANG_
 #define _FALCOR_LTC_SLANG_
 
+// code taken from https://eheitzresearch.wordpress.com/415-2/, some refactoring was done to meet our requirements
+
 __import ShaderCommon;
 __import Lights;
 
