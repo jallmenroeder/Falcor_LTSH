@@ -13,11 +13,11 @@ Texture2D<float> gLtcCoeff;
 
 float3x3 getMatrix(float cosTheta, float roughness)
 {
-    float l_idx = acos(cosTheta) / 1.57079;
-    float a_idx = sqrt(roughness);
-    float2 uv = float2(l_idx, a_idx);
+    int l_idx = round(acos(cosTheta) * 64 / 1.57079);
+    int a_idx = round(sqrt(roughness) * 64);
+    int3 uv = int3(l_idx, a_idx, 0);
 
-    float4 matVec = gMinv.Sample(gSampler, uv);
+    float4 matVec = gMinv.Load(uv);
     float3x3 mat = float3x3(
         1, 0, matVec.z,
         0, matVec.y, 0,
@@ -28,11 +28,11 @@ float3x3 getMatrix(float cosTheta, float roughness)
 }
 
 float getCoeff(float cosTheta, float roughness) {
-    float l_idx = acos(cosTheta) / 1.57079;
-    float a_idx = sqrt(roughness);
-    float2 uv = float2(l_idx, a_idx);
+    int l_idx = round(acos(cosTheta) * 64 / 1.57079);
+    int a_idx = round(sqrt(roughness) * 64);
+    int3 uv = int3(l_idx, a_idx, 0);
 
-    return gLtcCoeff.Sample(gSampler, uv);
+    return gLtcCoeff.Load(uv);
 }
 
 

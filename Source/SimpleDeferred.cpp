@@ -29,8 +29,9 @@
 #include "PolygonUtil.h"
 #include "Numpy.hpp"
 
-const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
+//const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
+const std::string SimpleDeferred::skDefaultModel = "Media/plane.fbx";
 
 const int legendre_res = 10000;
 
@@ -64,7 +65,7 @@ void convertLtshCoeff(const std::vector<double>& in, std::vector<float>& out)
                     continue;
                 }
                 // order has to be rewritten to match texture format
-                out[i * 64 * 28 + j * 4 + (k % 4) + offset] = float(in[i * 64 * 25 + j * 25 + k]);
+                out[i * 64 * 28 + j * 4 + (k % 4) + offset] = float(in[j * 64 * 25 + i * 25 + k]);
             }
         }
     }
@@ -296,18 +297,18 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH matrices
-    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n5_t256.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients
-    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n5_t256.npy", temp);
     convertLtshCoeff(temp, data);
     mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Create Sampler
     Sampler::Desc desc;
-    desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap, Sampler::AddressMode::Wrap);
+    desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Border, Sampler::AddressMode::Border, Sampler::AddressMode::Border);
     mSampler = Sampler::create(desc);
 
     // Create Textures to read legendre polynomials in ~ O(1)

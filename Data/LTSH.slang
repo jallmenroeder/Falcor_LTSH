@@ -32,6 +32,10 @@ void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
     coeffs[24] = gLtshCoeff.Load(coords).r;
 }
 
+float4 getTexture(float2 uv) {
+    return gLtshCoeff.Sample(gSampler, uv);
+}
+
 void Legendre(float x, out float[4] P) {
 
     P[0] = 0;
