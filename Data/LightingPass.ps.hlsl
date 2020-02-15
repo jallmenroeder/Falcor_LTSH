@@ -162,8 +162,8 @@ ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 
     sr.diffuse = sr.diffuse;
 
     // specular lighting
-    int l_idx = round(acos(sd.NdotV) * 64 / 1.57079);
-    int a_idx = round(sqrt(sd.roughness) * 64);
+    int l_idx = round(acos(sd.NdotV) * 63 / 1.57079);
+    int a_idx = round(sqrt(sd.roughness) * 63);
 
     float3x3 MInv = getMatrix(sd.NdotV, sd.roughness);
     
@@ -197,10 +197,11 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
     ShadingResult sr = initShadingResult();
 
     float3x3 MInv = getMatrix(sd.NdotV, sd.roughness);
+
     float ltshCoeffs[25];
     getLtshCoeffs(sd.NdotV, sd.roughness, ltshCoeffs);
-
     float cosCoeff = getCoeff(sd.NdotV, sd.roughness);
+
     float3 T1, T2;
     T1 = normalize(sd.V - sd.N * sd.NdotV);
     T2 = cross(sd.N, T1);

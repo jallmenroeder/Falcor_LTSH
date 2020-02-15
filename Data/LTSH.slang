@@ -15,8 +15,8 @@ Texture2D<float4> gLtshCoeff;
 Texture1D<float4> gLegendre2345;
 
 void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
-    int l_idx = round(acos(cosTheta) * 64.f / 1.57079);
-    int a_idx = round(sqrt(roughness) * 64.f);
+    int l_idx = round(acos(cosTheta) * 63.f / 1.57079);
+    int a_idx = round(sqrt(roughness) * 63.f);
     int3 coords = int3(l_idx, a_idx, 0);
 
     float4 texFetch;
