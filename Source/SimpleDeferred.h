@@ -128,6 +128,4 @@ private:
 
     Texture::SharedPtr mLtshMInv;
     Texture::SharedPtr mLtshCoeff;
-
-    Texture::SharedPtr mLegendre2345;
 };

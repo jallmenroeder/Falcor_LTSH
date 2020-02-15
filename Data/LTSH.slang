@@ -12,7 +12,6 @@ static float INV_PI = 0.31830988618f;
 SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float4> gLtshCoeff;
-Texture1D<float4> gLegendre2345;
 
 void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
     int l_idx = round(acos(cosTheta) * 63.f / 1.57079);
@@ -32,19 +31,11 @@ void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
     coeffs[24] = gLtshCoeff.Load(coords).r;
 }
 
-float4 getTexture(float2 uv) {
-    return gLtshCoeff.Sample(gSampler, uv);
-}
-
-void Legendre(float x, out float[4] P) {
-
+void Legendre(float x, out float[4] P) {    
     P[0] = 0;
 	P[1] = x;
-
-    float4 texFetch = gLegendre2345.Sample(gSampler, x);
-    
-    P[2] = texFetch.x;
-    P[3] = texFetch.y;
+    P[2] = .5f * (3 * x * x - 1);
+    P[3] = .5f * (5 * x * x * x * - 3 * x);
 
     if (x < 0) {
         P[3] = -P[3];

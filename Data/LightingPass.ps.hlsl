@@ -63,7 +63,6 @@ SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float> gLtcCoeff;
 Texture2D<float4> gLtshCoeff;
-Texture1D<float4> gLegendre2345;
 
 // Debug modes
 #define ShowPos         1
@@ -137,7 +136,7 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
     float coeff = getCoeff(sd.NdotV, sd.roughness);
 
     sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor * coeff;
-    // Normalization, TODO: check if this is correct
+    // Normalization
     sr.specular /= 2 * 3.14159;
 
     sr.color.rgb = sr.diffuse + sr.specular;
@@ -162,9 +161,6 @@ ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 
     sr.diffuse = sr.diffuse;
 
     // specular lighting
-    int l_idx = round(acos(sd.NdotV) * 63 / 1.57079);
-    int a_idx = round(sqrt(sd.roughness) * 63);
-
     float3x3 MInv = getMatrix(sd.NdotV, sd.roughness);
     
     // construct orthonormal basis around N
@@ -185,9 +181,17 @@ ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 
     float Lc[25];
     polygonSH(lightPos, 4, Lc);
 
-    float cArea = get_transfer_color(Lc, int2(l_idx, a_idx));
+    float coeffs[25];
+    getLtshCoeffs(sd.NdotV, sd.roughness, coeffs);
 
-    sr.specular = cArea * light.intensity * specularColor;
+    //TODO: check if this is correct or if i should use this: float result = get_transfer_color(Lc, int2(l_idx, a_idx));
+    float result = 0;
+    for (int i = 0; i < 25; i++)
+    {
+        result += Lc[i] * coeffs[i];
+    }
+
+    sr.specular = result * light.intensity * specularColor;
     sr.color.rgb = sr.diffuse + sr.specular;
     return sr;
 }

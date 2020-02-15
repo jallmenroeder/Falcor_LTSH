@@ -311,26 +311,6 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Border, Sampler::AddressMode::Border, Sampler::AddressMode::Border);
     mSampler = Sampler::create(desc);
 
-    // Create Textures to read legendre polynomials in ~ O(1)
-    // Code taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/
-    float legendre_2345[legendre_res * 4];
-
-    for (int i = 0; i < legendre_res; i++) {
-        float X[10];
-        X[1] = float(i) / legendre_res;
-        for (int j = 2; j < 10; j++) {
-            X[j] = X[j - 1] * X[1];
-        }
-
-        legendre_2345[i * 4]        = (0.5f * (3.f * X[2] - 1.f));
-        legendre_2345[i * 4 + 1]    = (0.5f * (5.f * X[3] - 3.f * X[1]));
-        legendre_2345[i * 4 + 2]    = ((35.f * X[4] - 30.f * X[2] + 3.f) / 8.f);
-        legendre_2345[i * 4 + 3]    = ((63.f * X[5] - 70.f * X[3] + 15.f * X[1]) / 8.f);
-    }
-    // -------------- end of https://cseweb.ucsd.edu/~viscomp/projects/ash/ -----------------------------------------------
-
-    mLegendre2345 = Texture::create1D(legendre_res, ResourceFormat::RGBA32Float, 1, 1, legendre_2345, Resource::BindFlags::ShaderResource);
-
     // Load default model
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
 }
@@ -421,7 +401,6 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         {
             mpLightingVars->setTexture("gMinv", mLtshMInv);
             mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
-            mpLightingVars->setTexture("gLegendre2345", mLegendre2345);
         }
 
         // Set texture sampler
