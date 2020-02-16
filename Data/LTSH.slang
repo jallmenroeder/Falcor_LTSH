@@ -36,10 +36,6 @@ void Legendre(float x, out float[4] P) {
 	P[1] = x;
     P[2] = .5f * (3 * x * x - 1);
     P[3] = .5f * (5 * x * x * x * - 3 * x);
-
-    if (x < 0) {
-        P[3] = -P[3];
-    }
 }
 
 void boundary(float a, float b, float x, int maxN, out float[5] B_n) {
@@ -223,6 +219,7 @@ void polygonSH(const in float3 L[5], int numVerts, out float[25] Lcoeff) {
     Lcoeff[14] += dot(float3(-0.822588107798, 0.0250955547337, -0.822583092847), float3(w22[3], w24[3], w25[3]));
     Lcoeff[15] += dot(float3(-1.14577301943, 1.03584677217, -0.849735800355), float3(w20[3], w22[3], w23[3]));
     Lcoeff[15] += dot(float3(-0.438905584229, -0.100364975081, -1.36852983602), float3(w24[3], w25[3], w26[3]));
+
     Lcoeff[16] += dot(float3(-0.694140591095, -1.46594132085, -3.76291455607), float3(w20[4], w21[4], w22[4]));
     Lcoeff[16] += dot(float3(-4.19771773174, -4.41452625915, -5.21937739623), float3(w23[4], w24[4], w25[4]));
     Lcoeff[16] += dot(float3(30.1096083902, -0.582891410482, -25.58700736), float3(w26[4], w27[4], w28[4]));

@@ -172,14 +172,15 @@ ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 
     float3x3 baseMat = float3x3(T1, T2, sd.N);
     MInv = mul(MInv, baseMat);
 
-    float3 lightPos[5];
-    lightPos[0] = normalize(mul(MInv, gAreaLightPosW[0].xyz - sd.posW));
-    lightPos[1] = normalize(mul(MInv, gAreaLightPosW[1].xyz - sd.posW));
-    lightPos[2] = normalize(mul(MInv, gAreaLightPosW[2].xyz - sd.posW));
-    lightPos[3] = normalize(mul(MInv, gAreaLightPosW[3].xyz - sd.posW));
+    float3 L[5];
+    L[0] = normalize(mul(MInv, gAreaLightPosW[0].xyz - sd.posW));
+    L[1] = normalize(mul(MInv, gAreaLightPosW[1].xyz - sd.posW));
+    L[2] = normalize(mul(MInv, gAreaLightPosW[2].xyz - sd.posW));
+    L[3] = normalize(mul(MInv, gAreaLightPosW[3].xyz - sd.posW));
+    L[4] = L[3]; // avoid warning
 
     float Lc[25];
-    polygonSH(lightPos, 4, Lc);
+    polygonSH(L, 4, Lc);
 
     float coeffs[25];
     getLtshCoeffs(sd.NdotV, sd.roughness, coeffs);
