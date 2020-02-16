@@ -373,16 +373,16 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpAreaLight->setPolygonIntoLighting(pLightCB.get(), "gAreaLightPosW");
 
         // create new samples if the area light render mode changed to ground truth, stop sample creation if render mode is not ground truth
-        if (mAreaLightRenderMode == AreaLightRenderMode::GroundTruth && !mpAreaLight->getSampleCreation())
+        if ((mAreaLightRenderMode == AreaLightRenderMode::GroundTruth || mAreaLightRenderMode == AreaLightRenderMode::LtcBrdf || mAreaLightRenderMode == AreaLightRenderMode::LtshBrdf) && !mpAreaLight->getSampleCreation())
         {
             mpAreaLight->setSampleCreation(true);
         } 
-        else if (!(mAreaLightRenderMode == AreaLightRenderMode::GroundTruth) && mpAreaLight->getSampleCreation())
+        else if (!(mAreaLightRenderMode == AreaLightRenderMode::GroundTruth || mAreaLightRenderMode == AreaLightRenderMode::LtcBrdf || mAreaLightRenderMode == AreaLightRenderMode::LtshBrdf) && mpAreaLight->getSampleCreation())
         {
             mpAreaLight->setSampleCreation(false);
         }
 
-        if (mAreaLightRenderMode == AreaLightRenderMode::GroundTruth)
+        if (mAreaLightRenderMode == AreaLightRenderMode::GroundTruth || mAreaLightRenderMode == AreaLightRenderMode::LtcBrdf || mAreaLightRenderMode == AreaLightRenderMode::LtshBrdf)
         {
             ConstantBuffer::SharedPtr pSampleCB[4] = { mpLightingVars["SampleCB0"], mpLightingVars["SampleCB1"], mpLightingVars["SampleCB2"], mpLightingVars["SampleCB3"] };
             std::string varNames[4] = { "lightSamples0", "lightSamples1", "lightSamples2", "lightSamples3" };
@@ -392,12 +392,12 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
                 mpAreaLight->setSamplesIntoProgramVars(pSampleCB[i].get(), varNames[i], i);
             }
         } 
-        else if (mAreaLightRenderMode == AreaLightRenderMode::LTC || mAreaLightRenderMode == AreaLightRenderMode::LtcBrdf)
+        if (mAreaLightRenderMode == AreaLightRenderMode::LTC || mAreaLightRenderMode == AreaLightRenderMode::LtcBrdf)
         {
             mpLightingVars->setTexture("gMinv", mLtcMInv);
             mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff);
         }
-        else if (mAreaLightRenderMode == AreaLightRenderMode::LTSH || mAreaLightRenderMode == AreaLightRenderMode::LtshBrdf)
+        if (mAreaLightRenderMode == AreaLightRenderMode::LTSH || mAreaLightRenderMode == AreaLightRenderMode::LtshBrdf)
         {
             mpLightingVars->setTexture("gMinv", mLtshMInv);
             mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
