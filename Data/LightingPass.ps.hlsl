@@ -170,17 +170,25 @@ ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 
 
     // rotate area light in (T1, T2, R) basis
     float3x3 baseMat = float3x3(T1, T2, sd.N);
-    MInv = mul(MInv, baseMat);
 
     float3 L[5];
-    L[0] = normalize(mul(MInv, gAreaLightPosW[0].xyz - sd.posW));
-    L[1] = normalize(mul(MInv, gAreaLightPosW[1].xyz - sd.posW));
-    L[2] = normalize(mul(MInv, gAreaLightPosW[2].xyz - sd.posW));
-    L[3] = normalize(mul(MInv, gAreaLightPosW[3].xyz - sd.posW));
+    L[0] = mul(baseMat, gAreaLightPosW[0].xyz - sd.posW);
+    L[1] = mul(baseMat, gAreaLightPosW[1].xyz - sd.posW);
+    L[2] = mul(baseMat, gAreaLightPosW[2].xyz - sd.posW);
+    L[3] = mul(baseMat, gAreaLightPosW[3].xyz - sd.posW);
     L[4] = L[3]; // avoid warning
 
+    int n = 4;
+    ClipQuadToHorizon(L, n);
+    
+    L[0] = normalize(mul(MInv, L[0]));
+    L[1] = normalize(mul(MInv, L[1]));
+    L[2] = normalize(mul(MInv, L[2]));
+    L[3] = normalize(mul(MInv, L[3]));
+    L[4] = normalize(mul(MInv, L[4]));
+
     float Lc[25];
-    polygonSH(L, 4, Lc);
+    polygonSH(L, n, Lc);
 
     float coeffs[25];
     getLtshCoeffs(sd.NdotV, sd.roughness, coeffs);
