@@ -62,7 +62,7 @@ cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float> gLtcCoeff;
-Texture2DArray<float4> gLtshCoeff;
+Texture2D<float4> gLtshCoeff;
 
 // Debug modes
 #define ShowPos         1

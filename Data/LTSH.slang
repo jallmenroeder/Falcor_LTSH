@@ -11,12 +11,12 @@ static float INV_PI = 0.31830988618f;
 
 SamplerState gSampler;
 Texture2D<float4> gMinv;
-Texture2DArray<float4> gLtshCoeff;
+Texture2D<float4> gLtshCoeff;
 
 void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
     int l_idx = round(acos(cosTheta) * 63.f / 1.57079);
     int a_idx = round(sqrt(roughness) * 63.f);
-    int4 coords = int4(l_idx, a_idx, 0, 0);
+    int3 coords = int3(l_idx, a_idx, 0);
 
     float4 texFetch;
 
@@ -26,7 +26,7 @@ void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
         coeffs[i * 4 + 1] = texFetch.g;
         coeffs[i * 4 + 2] = texFetch.b;
         coeffs[i * 4 + 3] = texFetch.a;
-        coords.w += 1;
+        coords.x += 64;
     }
     coeffs[24] = gLtshCoeff.Load(coords).r;
 }
@@ -243,29 +243,29 @@ void polygonSH(const in float3 L[5], int numVerts, out float[25] Lcoeff) {
 
 float get_transfer_color(float Lc[25], int2 light_alpha_idx) {
     // Add envmap coefficient colors
-    int4 idx = int4(light_alpha_idx, 0, 0);
+    int3 idx = int3(light_alpha_idx, 0);
         
     float col_0 = gLtshCoeff.Load(idx).x * Lc[0];
     float col_1 = 0.4886025 * dot(gLtshCoeff.Load(idx).yzw, float4(Lc[0], Lc[1], Lc[2], Lc[3]).yzw);
 
-    idx.w += 1;
+    idx.x += 64;
     float col_2 = dot(gLtshCoeff.Load(idx), float4(Lc[4], Lc[5], Lc[6], Lc[7]));
-    idx.w += 1;
+    idx.x += 64;
     float4 temp = gLtshCoeff.Load(idx);
     col_2 += temp.x * Lc[8];
     col_2 *= 0.6307831;
 
     float col_3 = dot(temp.yzw, float3(Lc[9], Lc[10], Lc[11]));
-    idx.w += 1;
+    idx.x += 64;
     col_3 += dot(gLtshCoeff.Load(idx), float4(Lc[12], Lc[13], Lc[14], Lc[15]));
     col_3 *= 0.746353;
     
-    idx.w += 1;
+    idx.x += 64;
     float col_4 = dot(gLtshCoeff.Load(idx), float4(Lc[16], Lc[17], Lc[18], Lc[19]));
-    idx.w += 1;
+    idx.x += 64;
     col_4 += dot(gLtshCoeff.Load(idx), float4(Lc[20], Lc[21], Lc[22], Lc[23]));
     
-    idx.w += 1;
+    idx.x += 64;
     float4 temp2 = gLtshCoeff.Load(idx);
     col_4 += temp2.x * Lc[24];
     col_4 *= 0.8462844; 

@@ -57,15 +57,15 @@ void convertLtshCoeff(const std::vector<double>& in, std::vector<float>& out)
             for (size_t k = 0; k < 28; k++)
             {
                 // (k / 4) * 4 seems unnecessary but since it is integer division it gives us the right offset
-                size_t offset = (k / 4) * 64 * 64 * 4;
+                size_t offset = (k / 4) * 64 * 4;
                 // add pad value
                 if (k > 24)
                 {
-                    out[i * 64 * 4 + j * 4 + (k % 4) + offset] = 0.f;
+                    out[i * 64 * 28 + j * 4 + (k % 4) + offset] = 0.f;
                     continue;
                 }
                 // order has to be rewritten to match texture format
-                out[i * 64 * 4 + j * 4 + (k % 4) + offset] = float(in[j * 64 * 25 + i * 25 + k]);
+                out[i * 64 * 28 + j * 4 + (k % 4) + offset] = float(in[j * 64 * 25 + i * 25 + k]);
             }
         }
     }
@@ -304,7 +304,7 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     // Load LTSH coefficients
     aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n5_t256.npy", temp);
     convertLtshCoeff(temp, data);
-    mLtshCoeff = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 7, 1, data.data(), Resource::BindFlags::ShaderResource);
+    mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Create Sampler
     Sampler::Desc desc;
