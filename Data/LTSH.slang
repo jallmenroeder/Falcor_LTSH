@@ -32,9 +32,9 @@ void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
 }
 
 void Legendre(float x, out float[4] P) {    
-    float X[10];
+    float X[4];
     X[1] = x;
-    for (int j = 2; j < 6; j++) {
+    for (int j = 2; j < 4; j++) {
         X[j] = X[j-1] * X[1];
     }
     
@@ -42,10 +42,6 @@ void Legendre(float x, out float[4] P) {
     P[1] = x;
     P[2] = (0.5 * (3 * X[2] -1));
     P[3] = (0.5 * (5 * X[3] - 3*X[1]));
-
-    if (x < 0) {
-        P[3] = -P[3];
-    }
 }
 
 void boundary(float a, float b, float x, int maxN, out float[5] B_n) {
