@@ -14,22 +14,26 @@ Texture2D<float4> gMinv;
 Texture2D<float4> gLtshCoeff;
 
 void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
-    int l_idx = round(acos(cosTheta) * 63.f / 1.57079);
-    int a_idx = round(sqrt(roughness) * 63.f);
-    int3 coords = int3(l_idx, a_idx, 0);
+    float l_idx = acos(cosTheta) / 1.57079 / 7.f;
+    float a_idx = sqrt(roughness / 7.f);
+    float2 uv = float2(l_idx, a_idx);
+
+    // unbiased access
+    float offset = .5f / 64.f / 7.f;
+    uv += offset;
 
     float4 texFetch;
 
     // all the odd coefficients need to be negated due to a different convention in the Wang/Ramamoorthi code
     for (int i = 0; i < 6; i++) {
-        texFetch = gLtshCoeff.Load(coords);
+        texFetch = gLtshCoeff.Sample(gSampler, uv);
         coeffs[i * 4 + 0] = texFetch.r;
         coeffs[i * 4 + 1] = -texFetch.g;
         coeffs[i * 4 + 2] = texFetch.b;
         coeffs[i * 4 + 3] = -texFetch.a;
-        coords.x += 64;
+        uv.x += 1.f / 7.f;
     }
-    coeffs[24] = gLtshCoeff.Load(coords).r;
+    coeffs[24] = gLtshCoeff.Sample(gSampler, uv).r;
 }
 
 float solid_angle(float3 verts[5], int numVerts) {
