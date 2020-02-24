@@ -20,35 +20,51 @@ void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
 
     float4 texFetch;
 
+    // all the odd coefficients need to be negated due to a different convention in the Wang/Ramamoorthi code
     for (int i = 0; i < 6; i++) {
         texFetch = gLtshCoeff.Load(coords);
         coeffs[i * 4 + 0] = texFetch.r;
-        coeffs[i * 4 + 1] = texFetch.g;
+        coeffs[i * 4 + 1] = -texFetch.g;
         coeffs[i * 4 + 2] = texFetch.b;
-        coeffs[i * 4 + 3] = texFetch.a;
+        coeffs[i * 4 + 3] = -texFetch.a;
         coords.x += 64;
     }
     coeffs[24] = gLtshCoeff.Load(coords).r;
 }
 
-float solid_angle(float3 verts[4]) {
-    float sa = 0.0;
-    float3 tmp1 = cross(verts[0], verts[3]);
+float solid_angle(float3 verts[5], int numVerts) {
+    float sa = 0;
+    float3 tmp1 = cross(verts[0], verts[numVerts-1]);
     float3 tmp2 = cross(verts[0], verts[1]);
     sa += acos(dot(tmp1, tmp2) / (length(tmp1) * length(tmp2)));
-
-    for (int i = 1; i < 3; i++) {
-        float3 tmp1 = cross(verts[i], verts[i-1]);
-        float3 tmp2 = cross(verts[i], verts[i+1]);
-        sa += acos(dot(tmp1, tmp2) / (length(tmp1) * length(tmp2)));
-    }
-    // for i == 3
-    tmp1 = cross(verts[3], verts[2]);
-    tmp2 = cross(verts[3], verts[0]);
+    
+    // Polygon will be at least a triangle
+    // i = 1
+    tmp1 = cross(verts[1], verts[0]);
+    tmp2 = cross(verts[1], verts[2]);
     sa += acos(dot(tmp1, tmp2) / (length(tmp1) * length(tmp2)));
 
-    sa -= 2.0*PI;
-    return sa;
+    // i = 2
+    tmp1 = cross(verts[2], verts[1]);
+    tmp2 = cross(verts[2], verts[3 % numVerts]);
+    sa += acos(dot(tmp1, tmp2) / (length(tmp1) * length(tmp2)));
+
+    if (numVerts >= 4) {
+        tmp1 = cross(verts[3], verts[2]);
+        tmp2 = cross(verts[3], verts[4 % numVerts]);
+        sa += acos(dot(tmp1, tmp2) / (length(tmp1) * length(tmp2)));
+    }
+    if (numVerts >= 5) {
+        tmp1 = cross(verts[4], verts[3]);
+        tmp2 = cross(verts[4], verts[0]);   // for now let max vertices be 5
+        sa += acos(dot(tmp1, tmp2) / (length(tmp1) * length(tmp2)));
+    }
+
+    sa -= (numVerts - 2) *PI;
+
+    // negate solid angle of wrong ordered polygons to enable double sided lighting
+    float orientation = determinant(float3x3(verts[0], verts[1], verts[2]));
+    return sa * orientation / abs(orientation);
 }
 
 void Legendre(float x, inout float P[3]) {
@@ -89,70 +105,91 @@ void boundary(float a, float b, float x, int maxN, inout float B_n[5]) {
     }
 }
 
-void evalLight(float3 dir, float3 verts[4], float3 gam[4], float3 gamP[4],
-    int maxN, inout float surf[5]) {
-
+void evalLight(float3 dir, float3 verts[5], float3 gam[5], float3 gamP[5], int maxN, int numVerts, inout float[5] surf) {
+    
     float total[5];
-    float bound[5];
-    boundary(dot(dir, verts[0]), dot(dir, gamP[0]), acos(dot(verts[0], verts[1])), maxN, bound);
+
+	float bound[5];
+    boundary(dot(dir, verts[0]), dot(dir, gamP[0]),
+		acos(dot(verts[0], verts[1])), maxN, bound);
+	for (int n = 0; n < maxN; n++) {
+		total[n] = bound[n] * dot(dir, gam[0]);
+	}
+
+    // i = 1
+    boundary(dot(dir, verts[1]), dot(dir, gamP[1]), acos(dot(verts[1], verts[2])), maxN, bound);
     for (int n = 0; n < maxN; n++) {
-        total[n] = bound[n] * dot(dir, gam[0]);
+        total[n] += bound[n] * dot(dir, gam[1]);
     }
 
-    for (int i = 1; i < 3; i++) {
-        boundary(dot(dir, verts[i]), dot(dir, gamP[i]),
-                         acos(dot(verts[i], verts[(i+1)])), maxN, bound);
-        for (int n = 0; n < maxN; n++) {
-            total[n] += bound[n] * dot(dir, gam[i]);
-            }
-    }
-    // for i == 3
-    boundary(dot(dir, verts[3]), dot(dir, gamP[3]), acos(dot(verts[3], verts[0])), maxN, bound);
+    // i = 2
+    boundary(dot(dir, verts[2]), dot(dir, gamP[2]), acos(dot(verts[2], verts[3 % numVerts])), maxN, bound);
     for (int n = 0; n < maxN; n++) {
-        total[n] += bound[n] * dot(dir, gam[3]);
+        total[n] += bound[n] * dot(dir, gam[2]);
+    }
+
+    // i = 3
+    if (numVerts >= 4) {
+        boundary(dot(dir, verts[3]), dot(dir, gamP[3]), acos(dot(verts[3], verts[4 % numVerts])), maxN, bound);
+        for (int n = 0; n < maxN; n++) {
+            total[n] += bound[n] * dot(dir, gam[3]);
+        }
+    }
+
+    if (numVerts >= 5) {
+        boundary(dot(dir, verts[4]), dot(dir, gamP[4]), acos(dot(verts[4], verts[5 % numVerts])), maxN, bound);
+        for (int n = 0; n < maxN; n++) {
+            total[n] += bound[n] * dot(dir, gam[4]);
+        }
     }
 
     surf[1] = 0.5 * total[0];
     surf[2] = 0.5 * total[1];
     surf[3] = dot(float2(0.416667, 0.166667), float2(total[2], surf[1]));
     surf[4] = dot(float2(0.35, 0.3), float2(total[3], surf[2]));
+
+    for (int i = 1; i < 5; i++) {
+        surf[i] *= sqrt((2.0 * float(i) + 1.0) / (4.0 * PI));
+    }
 }
 
-void polygonSH(float3 L[4], inout float Lcoeff[25]) {
-    float3 G[4];
+void polygonSH(float3 L[5], int numVerts, inout float Lcoeff[25]) {
+    float3 G[5];
     G[0] = normalize(cross(L[0], L[1]));
     G[1] = normalize(cross(L[1], L[2]));
     G[2] = normalize(cross(L[2], L[3]));
-    G[3] = normalize(cross(L[3], L[0]));
+    G[3] = normalize(cross(L[3], L[4]));
+    G[4] = normalize(cross(L[4], L[0]));
 
-    float3 Gp[4];
+    float3 Gp[5];
     Gp[0] = cross(G[0], L[0]);
     Gp[1] = cross(G[1], L[1]);
     Gp[2] = cross(G[2], L[2]);
     Gp[3] = cross(G[3], L[3]);
+    Gp[4] = cross(G[4], L[4]);
 
-    float SA = solid_angle(L);
+    float SA = solid_angle(L, numVerts);
 
     Lcoeff[0] = 0.282095 * SA;
 
     float w20[5];
-    evalLight((float3(0.866025, -0.500001, -0.000004)), L, G, Gp, 4, w20);
+    evalLight((float3(0.866025, -0.500001, -0.000004)), L, G, Gp, 4, numVerts, w20);
     float w21[5];
-    evalLight((float3(-0.759553, 0.438522, -0.480394)), L, G, Gp, 4, w21);
+    evalLight((float3(-0.759553, 0.438522, -0.480394)), L, G, Gp, 4, numVerts, w21);
     float w22[5];
-    evalLight((float3(-0.000002, 0.638694, 0.769461)), L, G, Gp, 4, w22);
+    evalLight((float3(-0.000002, 0.638694, 0.769461)), L, G, Gp, 4, numVerts, w22);
     float w23[5];
-    evalLight((float3(-0.000004, -1.000000, -0.000004)), L, G, Gp, 4, w23);
+    evalLight((float3(-0.000004, -1.000000, -0.000004)), L, G, Gp, 4, numVerts, w23);
     float w24[5];
-    evalLight((float3(-0.000007, 0.000003, -1.000000)), L, G, Gp, 4, w24);
+    evalLight((float3(-0.000007, 0.000003, -1.000000)), L, G, Gp, 4, numVerts, w24);
     float w25[5];
-    evalLight((float3(-0.000002, -0.638694, 0.769461)), L, G, Gp, 4, w25);
+    evalLight((float3(-0.000002, -0.638694, 0.769461)), L, G, Gp, 4, numVerts, w25);
     float w26[5];
-    evalLight((float3(-0.974097, 0.000007, -0.226131)), L, G, Gp, 4, w26);
+    evalLight((float3(-0.974097, 0.000007, -0.226131)), L, G, Gp, 4, numVerts, w26);
     float w27[5];
-    evalLight((float3(-0.000003, 0.907079, -0.420960)), L, G, Gp, 4, w27);
+    evalLight((float3(-0.000003, 0.907079, -0.420960)), L, G, Gp, 4, numVerts, w27);
     float w28[5];
-    evalLight((float3(-0.960778, 0.000007, -0.277320)), L, G, Gp, 4, w28);
+    evalLight((float3(-0.960778, 0.000007, -0.277320)), L, G, Gp, 4, numVerts, w28);
 
 
     Lcoeff[1] = dot(float3(2.1995339, 2.50785367, 1.56572711), float3(w20[1], w21[1], w22[1]));
@@ -231,29 +268,29 @@ float evaluateSH(float x, float y, float z, float[25] coefficients) {
     float pSH[25];
 
     pSH[0] = 2.82094791773878140e-01 * cosine0 * legendre0_0;
-    pSH[1] = 4.88602511902919923e-01 * sine1 * legendre1_1;
+    pSH[1] = -4.88602511902919923e-01 * sine1 * legendre1_1;
     pSH[2] = 4.88602511902919923e-01 * cosine0 * legendre1_0;
-    pSH[3] = 4.88602511902919923e-01 * cosine1 * legendre1_1;
+    pSH[3] = -4.88602511902919923e-01 * cosine1 * legendre1_1;
     pSH[4] = 1.82091405098679854e-01 * sine2 * legendre2_2;
-    pSH[5] = 3.64182810197359708e-01 * sine1 * legendre2_1;
+    pSH[5] = -3.64182810197359708e-01 * sine1 * legendre2_1;
     pSH[6] = 6.30783130505040091e-01 * cosine0 * legendre2_0;
-    pSH[7] = 3.64182810197359708e-01 * cosine1 * legendre2_1;
+    pSH[7] = -3.64182810197359708e-01 * cosine1 * legendre2_1;
     pSH[8] = 1.82091405098679854e-01 * cosine2 * legendre2_2;
-    pSH[9] = 3.93362393284428999e-02 * sine3 * legendre3_3;
+    pSH[9] = -3.93362393284428999e-02 * sine3 * legendre3_3;
     pSH[10] = 9.63537147546851408e-02 * sine2 * legendre3_2;
-    pSH[11] = 3.04697199642977146e-01 * sine1 * legendre3_1;
+    pSH[11] = -3.04697199642977146e-01 * sine1 * legendre3_1;
     pSH[12] = 7.46352665180230801e-01 * cosine0 * legendre3_0;
-    pSH[13] = 3.04697199642977146e-01 * cosine1 * legendre3_1;
+    pSH[13] = -3.04697199642977146e-01 * cosine1 * legendre3_1;
     pSH[14] = 9.63537147546851408e-02 * cosine2 * legendre3_2;
-    pSH[15] = 3.93362393284428999e-02 * cosine3 * legendre3_3;
+    pSH[15] = -3.93362393284428999e-02 * cosine3 * legendre3_3;
     pSH[16] = 5.96034033761120175e-03 * sine4 * legendre4_4;
-    pSH[17] = 1.68583882836183876e-02 * sine3 * legendre4_3;
+    pSH[17] = -1.68583882836183876e-02 * sine3 * legendre4_3;
     pSH[18] = 6.30783130505040007e-02 * sine2 * legendre4_2;
-    pSH[19] = 2.67618617422915650e-01 * sine1 * legendre4_1;
+    pSH[19] = -2.67618617422915650e-01 * sine1 * legendre4_1;
     pSH[20] = 8.46284375321634474e-01 * cosine0 * legendre4_0;
-    pSH[21] = 2.67618617422915650e-01 * cosine1 * legendre4_1;
+    pSH[21] = -2.67618617422915650e-01 * cosine1 * legendre4_1;
     pSH[22] = 6.30783130505040007e-02 * cosine2 * legendre4_2;
-    pSH[23] = 1.68583882836183876e-02 * cosine3 * legendre4_3;
+    pSH[23] = -1.68583882836183876e-02 * cosine3 * legendre4_3;
     pSH[24] = 5.96034033761120175e-03 * cosine4 * legendre4_4;
 
     float sum = 0;
