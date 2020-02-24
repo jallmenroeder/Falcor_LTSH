@@ -14,7 +14,8 @@ Texture2D<float> gLtcCoeff;
 float3x3 getMatrix(float cosTheta, float roughness)
 {
     float l_idx = acos(cosTheta) / 1.57079;
-    float a_idx = sqrt(roughness);
+    // use discrete values for roughness and only interpolate view
+    float a_idx = sqrt(round(roughness * 63) / 63.f);
     float2 uv = float2(l_idx, a_idx);
 
     // unbiased access
@@ -33,7 +34,8 @@ float3x3 getMatrix(float cosTheta, float roughness)
 
 float getCoeff(float cosTheta, float roughness) {
     float l_idx = acos(cosTheta) / 1.57079;
-    float a_idx = sqrt(roughness);
+    // use discrete values for roughness and only interpolate view
+    float a_idx = sqrt(round(roughness * 63) / 63.f);
     float2 uv = float2(l_idx, a_idx);
 
     // unbiased access

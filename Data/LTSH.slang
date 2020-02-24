@@ -15,7 +15,8 @@ Texture2D<float4> gLtshCoeff;
 
 void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
     float l_idx = acos(cosTheta) / 1.57079 / 7.f;
-    float a_idx = sqrt(roughness / 7.f);
+    // use discrete values for roughness and only interpolate view
+    float a_idx = sqrt(round(roughness * 63) / 63.f / 7.f);
     float2 uv = float2(l_idx, a_idx);
 
     // unbiased access
