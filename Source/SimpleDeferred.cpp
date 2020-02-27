@@ -36,20 +36,20 @@ const std::string SimpleDeferred::skDefaultModel = "Media/plane.fbx";
 const int legendre_res = 10000;
 
 // convert matrix data read from .npy file to a buffer which can written in the texture
-void convertDoubleToFloat(const std::vector<double>& in, std::vector<float>& out)
+void convertDoubleToFloat(const std::vector<double>& in, std::vector<glm::detail::hdata>& out)
 {
     out.clear();
     for (auto val : in)
     {
-        out.push_back(float(val));
+        out.push_back(glm::detail::toFloat16(float(val)));
     }
 }
 
 // convert ltsh coefficient data read from .npy file to a buffer which can written in the texture, differs from ltc becaus ltsh has more coefficients
-void convertLtshCoeff(const std::vector<double>& in, std::vector<float>& out)
+void convertLtshCoeff(const std::vector<double>& in, std::vector<glm::detail::hdata>& out)
 {
     // we only need 25 coefficients but to fit the RGBA texture we pad to 28, this gives 7 64x64 fields containing 4(RGBA) coefficients
-    out = std::vector<float>(64 * 64 * 28);
+    out = std::vector<glm::detail::hdata>(64 * 64 * 28);
     for (size_t i = 0; i < 64; i++)
     {
         for (size_t j = 0; j < 64; j++)
@@ -61,11 +61,11 @@ void convertLtshCoeff(const std::vector<double>& in, std::vector<float>& out)
                 // add pad value
                 if (k > 24)
                 {
-                    out[i * 64 * 28 + j * 4 + (k % 4) + offset] = 0.f;
+                    out[i * 64 * 28 + j * 4 + (k % 4) + offset] = glm::detail::toFloat16(0.f);
                     continue;
                 }
                 // order has to be rewritten to match texture format
-                out[i * 64 * 28 + j * 4 + (k % 4) + offset] = float(in[j * 64 * 25 + i * 25 + k]);
+                out[i * 64 * 28 + j * 4 + (k % 4) + offset] = glm::detail::toFloat16(float(in[j * 64 * 25 + i * 25 + k]));
             }
         }
     }
@@ -283,28 +283,28 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
 
     std::vector<double> temp = std::vector<double>();
-    std::vector<float> data = std::vector<float>();
+    std::vector<glm::detail::hdata> data = std::vector<glm::detail::hdata>();
 
 
     // Load LTC matrices
     aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
     convertDoubleToFloat(temp, data);
-    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+    mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
     aoba::LoadArrayFromNumpy("Data/Params/cos_coeff.npy", temp);
     convertDoubleToFloat(temp, data);
-    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+    mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH matrices
     aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n5_t256.npy", temp);
     convertDoubleToFloat(temp, data);
-    mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+    mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients
     aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n5_t256.npy", temp);
     convertLtshCoeff(temp, data);
-    mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA32Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+    mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Create Sampler
     Sampler::Desc desc;
