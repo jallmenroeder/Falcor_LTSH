@@ -13,28 +13,31 @@ SamplerState gSampler;
 Texture2D<float4> gMinv;
 Texture2D<float4> gLtshCoeff;
 
-void getLtshCoeffs(float cosTheta, float roughness, out float[25] coeffs) {
-    float l_idx = acos(cosTheta) / 1.57079 / 7.f;
-    // use discrete values for roughness and only interpolate view
-    float a_idx = sqrt(round(roughness * 63) / 63.f / 7.f);
-    float2 uv = float2(l_idx, a_idx);
+float3x3 getLtshMatrix(in int3 uv)
+{
+    float4 matVec = gMinv.Load(uv);
+    float3x3 mat = float3x3(
+        1, 0, matVec.z,
+        0, matVec.y, 0,
+        matVec.x, 0, matVec.w
+    );
 
-    // unbiased access
-    float offset = .5f / 64.f / 7.f;
-    uv += offset;
+    return mat;
+}
 
+void getLtshCoeffs(in int3 uv, out float[25] coeffs) {
     float4 texFetch;
 
     // all the odd coefficients need to be negated due to a different convention in the Wang/Ramamoorthi code
     for (int i = 0; i < 6; i++) {
-        texFetch = gLtshCoeff.Sample(gSampler, uv);
+        texFetch = gLtshCoeff.Load(uv);
         coeffs[i * 4 + 0] = texFetch.r;
         coeffs[i * 4 + 1] = -texFetch.g;
         coeffs[i * 4 + 2] = texFetch.b;
         coeffs[i * 4 + 3] = -texFetch.a;
-        uv.x += 1.f / 7.f;
+        uv.x += 64;
     }
-    coeffs[24] = gLtshCoeff.Sample(gSampler, uv).r;
+    coeffs[24] = gLtshCoeff.Load(uv).r;
 }
 
 float solid_angle(float3 verts[5], int numVerts) {

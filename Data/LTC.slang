@@ -11,17 +11,8 @@ Texture2D<float4> gMinv;
 Texture2D<float> gLtcCoeff;
 
 
-float3x3 getMatrix(float cosTheta, float roughness)
+float3x3 getMatrix(float2 uv)
 {
-    float l_idx = acos(cosTheta) / 1.57079;
-    // use discrete values for roughness and only interpolate view
-    float a_idx = sqrt(round(roughness * 63) / 63.f);
-    float2 uv = float2(l_idx, a_idx);
-
-    // unbiased access
-    float offset = .5f / 64.f;
-    uv += offset;
-
     float4 matVec = gMinv.Sample(gSampler, uv);
     float3x3 mat = float3x3(
         1, 0, matVec.z,
@@ -32,16 +23,7 @@ float3x3 getMatrix(float cosTheta, float roughness)
     return mat;
 }
 
-float getCoeff(float cosTheta, float roughness) {
-    float l_idx = acos(cosTheta) / 1.57079;
-    // use discrete values for roughness and only interpolate view
-    float a_idx = sqrt(round(roughness * 63) / 63.f);
-    float2 uv = float2(l_idx, a_idx);
-
-    // unbiased access
-    float offset = .5f / 64.f;
-    uv += offset;
-
+float getCoeff(float2 uv) {
     return gLtcCoeff.Sample(gSampler, uv);
 }
 
