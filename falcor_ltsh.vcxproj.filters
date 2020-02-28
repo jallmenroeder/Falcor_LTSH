@@ -57,5 +57,8 @@
     <None Include="Data\LTSH.slang">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Data\LTSHn3.slang">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

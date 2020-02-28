@@ -71,6 +71,32 @@ void convertLtshCoeff(const std::vector<double>& in, std::vector<glm::detail::hd
     }
 }
 
+// convert ltsh coefficient data read from .npy file to a buffer which can written in the texture, differs from ltc becaus ltsh has more coefficients
+void convertLtshCoeffN3(const std::vector<double>& in, std::vector<glm::detail::hdata>& out)
+{
+    // we only need 9 coefficients but to fit the RGBA texture we pad to 12, this gives 3 64x64 fields containing 4(RGBA) coefficients
+    out = std::vector<glm::detail::hdata>(64 * 64 * 12);
+    for (size_t i = 0; i < 64; i++)
+    {
+        for (size_t j = 0; j < 64; j++)
+        {
+            for (size_t k = 0; k < 12; k++)
+            {
+                // (k / 4) * 4 seems unnecessary but since it is integer division it gives us the right offset
+                size_t offset = (k / 4) * 64 * 4;
+                // add pad value
+                if (k > 8)
+                {
+                    out[i * 64 * 12 + j * 4 + (k % 4) + offset] = glm::detail::toFloat16(0.f);
+                    continue;
+                }
+                // order has to be rewritten to match texture format
+                out[i * 64 * 12 + j * 4 + (k % 4) + offset] = glm::detail::toFloat16(float(in[j * 64 * 9 + i * 9 + k]));
+            }
+        }
+    }
+}
+
 SimpleDeferred::~SimpleDeferred()
 {
 }
@@ -152,6 +178,7 @@ void SimpleDeferred::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
     areaLightRenderModeList.push_back({ 3, "None" });
     areaLightRenderModeList.push_back({ 4, "GT with LTC BRDF" });
     areaLightRenderModeList.push_back({ 5, "GT with LTSH BRDF" });
+    areaLightRenderModeList.push_back({ 6, "LTSH_N3" });
     pGui->addDropdown("Area Light Render Mode", areaLightRenderModeList, (uint32_t&)mAreaLightRenderMode);
 
     Gui::DropdownList cullList;
@@ -306,6 +333,16 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     convertLtshCoeff(temp, data);
     mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
+    // Load LTSH matrices
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n3_t128.npy", temp);
+    convertDoubleToFloat(temp, data);
+    mLtshMInvN3 = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+
+    // Load LTSH coefficients
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n3_t128.npy", temp);
+    convertLtshCoeffN3(temp, data);
+    mLtshCoeffN3 = Texture::create2D(64 * 3, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+
     // Create Sampler
     Sampler::Desc desc;
     desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Border, Sampler::AddressMode::Border, Sampler::AddressMode::Border);
@@ -401,6 +438,11 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         {
             mpLightingVars->setTexture("gMinv", mLtshMInv);
             mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
+        }
+        if (mAreaLightRenderMode == AreaLightRenderMode::LTSH_N3)
+        {
+            mpLightingVars->setTexture("gMinv", mLtshMInvN3);
+            mpLightingVars->setTexture("gLtshCoeffN3", mLtshCoeffN3);
         }
 
         // Set texture sampler
