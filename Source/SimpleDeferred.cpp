@@ -29,9 +29,9 @@
 #include "PolygonUtil.h"
 #include "Numpy.hpp"
 
-//const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
+const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
-const std::string SimpleDeferred::skDefaultModel = "Media/plane.fbx";
+//const std::string SimpleDeferred::skDefaultModel = "Media/plane.fbx";
 
 const int legendre_res = 10000;
 
