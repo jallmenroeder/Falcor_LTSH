@@ -52,6 +52,8 @@ cbuffer PerImageCB
     // Area light render mode
     uint gAreaLightRenderMode;
     float4 gAreaLightPosW[NumVertices];
+
+    float gSeed;
 };
 
 cbuffer SampleCB0 { float4 lightSamples0[NumSamples]; };
@@ -80,10 +82,9 @@ Texture2D<float4> gLtshCoeff;
 #define LtcBrdf         4
 #define LtshBrdf        5
 
-// returns a random int in {0, 1, 2, 3} based on a 2d point (texC)
-int rand(float2 co)
-{
-    return (int)(frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453123) * 4);
+// returns a random float in [0,1] based on a 2d point (texC)
+float rand(in float2 xy) {
+    return frac(tan(distance(xy * 1.61803398874989484820459f, xy) * gSeed) * xy.x);
 }
 
 // normally lightPosW is stored in the LightData but for our ground truth sampling we need to set manually
@@ -345,7 +346,7 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
         return float4(gAreaLight.intensity / maxIntensity, 1);
     };
 
-    int sampleSet = rand(texC);
+    int sampleSet = round(rand(texC) * 4);
     float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness, sampleSet);
 
     return float4(color, 1);

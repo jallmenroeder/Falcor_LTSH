@@ -415,6 +415,8 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         // Area light render mode
         pLightCB->setVariable("gAreaLightRenderMode", (uint32_t)mAreaLightRenderMode);
 
+        pLightCB->setVariable("gSeed", static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 1000000.f));
+
         // Set GBuffer as input
         mpLightingVars->setTexture("gGBuf0", mpGBufferFbo->getColorTexture(0));
         mpLightingVars->setTexture("gGBuf1", mpGBufferFbo->getColorTexture(1));
