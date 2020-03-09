@@ -314,32 +314,32 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
 
 
     // Load LTC matrices
-    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat_t128.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
-    aoba::LoadArrayFromNumpy("Data/Params/cos_coeff.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/cos_coeff_t128.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH matrices for N=5
-    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n5_t256.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n5_t128.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients for N=5
-    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n5_t256.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n5_t128.npy", temp);
     convertLtshCoeff(temp, data);
     mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH matrices for N=3
-    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n3_t256.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n3_t128.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtshMInvN3 = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients for N=3
-    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n3_t256.npy", temp);
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n3_t128.npy", temp);
     convertLtshCoeffN3(temp, data);
     mLtshCoeffN3 = Texture::create2D(64 * 3, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
