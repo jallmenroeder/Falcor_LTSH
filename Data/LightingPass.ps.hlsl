@@ -63,7 +63,9 @@ cbuffer SampleCB2 { float4 lightSamples2[NumSamples]; };
 cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 
 SamplerState gSampler;
-Texture2D<float4> gMinv;
+Texture2D<float4> gLtcMinv;
+Texture2D<float4> gLtshMinv;
+Texture2D<float4> gLtshMinvN3;
 Texture2D<float> gLtcCoeff;
 Texture2D<float4> gLtshCoeff;
 Texture2D<float4> gLtshCoeffN3;
@@ -168,7 +170,7 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
     // unbiased access
     uv = m * uv + b;
 
-    float3x3 MInv = getMatrix(uv);
+    float3x3 MInv = getLtcMatrix(uv);
     float coeff = getCoeff(uv);
 
     sr.specular = LTC_Evaluate(sd.N, sd.V, sd.posW, MInv, gAreaLightPosW, true, light.intensity) * specularColor * coeff;
@@ -272,7 +274,7 @@ ShadingResult evalMaterialAreaLightLTSH_N3(ShadingData sd, LightData light, floa
     int3 view_alpha = dither(uv, texC);
 
     // specular lighting
-    float3x3 MInv = getLtshMatrix(view_alpha);
+    float3x3 MInv = getLtshMatrixN3(view_alpha);
 
     // construct orthonormal basis around N
     float3 T1, T2;
@@ -330,7 +332,7 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
 
     int3 view_alpha = dither(uv, texC);
 
-    float3x3 MInv_cos = getMatrix(cos_uv);
+    float3x3 MInv_cos = getLtcMatrix(cos_uv);
     float3x3 MInv_sh = getLtshMatrix(view_alpha);
 
     float ltshCoeffs[25];

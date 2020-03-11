@@ -7,13 +7,13 @@ __import ShaderCommon;
 __import Lights;
 
 SamplerState gSampler;
-Texture2D<float4> gMinv;
+Texture2D<float4> gLtcMinv;
 Texture2D<float> gLtcCoeff;
 
 
-float3x3 getMatrix(float2 uv)
+float3x3 getLtcMatrix(float2 uv)
 {
-    float4 matVec = gMinv.Sample(gSampler, uv);
+    float4 matVec = gLtcMinv.Sample(gSampler, uv);
     float3x3 mat = float3x3(
         1, 0, matVec.z,
         0, matVec.y, 0,

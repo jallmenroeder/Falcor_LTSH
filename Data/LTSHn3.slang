@@ -5,8 +5,20 @@ __import LTSH;
 
 // code taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang
 
-SamplerState gSampler;
+Texture2D<float4> gLtshMinvN3;
 Texture2D<float4> gLtshCoeffN3;
+
+float3x3 getLtshMatrixN3(in int3 uv)
+{
+    float4 matVec = gLtshMinvN3.Load(uv);
+    float3x3 mat = float3x3(
+        1, 0, matVec.z,
+        0, matVec.y, 0,
+        matVec.x, 0, matVec.w
+    );
+
+    return mat;
+}
 
 void getLtshCoeffsN3(in int3 uv, out float[9] coeffs) {
     float4 texFetch;

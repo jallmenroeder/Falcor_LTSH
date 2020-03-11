@@ -9,13 +9,12 @@ __import Lights;
 static float PI = 3.14159265f;
 static float INV_PI = 0.31830988618f;
 
-SamplerState gSampler;
-Texture2D<float4> gMinv;
+Texture2D<float4> gLtshMinv;
 Texture2D<float4> gLtshCoeff;
 
 float3x3 getLtshMatrix(in int3 uv)
 {
-    float4 matVec = gMinv.Load(uv);
+    float4 matVec = gLtshMinv.Load(uv);
     float3x3 mat = float3x3(
         1, 0, matVec.z,
         0, matVec.y, 0,

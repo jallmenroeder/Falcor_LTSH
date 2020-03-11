@@ -358,6 +358,18 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
 
     const glm::vec4 clearColor(0.38f, 0.52f, 0.10f, 1);
 
+    if (mInitTextures)
+    {
+        mpLightingVars->setTexture("gLtcMinv", mLtcMInv);
+        mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff); 
+        mpLightingVars->setTexture("gLtshMinv", mLtshMInv);
+        mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
+        mpLightingVars->setTexture("gLtshMinvN3", mLtshMInvN3);
+        mpLightingVars->setTexture("gLtshCoeffN3", mLtshCoeffN3);
+        mpLightingVars->setSampler("gSampler", mSampler);
+        mInitTextures = false;
+    }
+
     // G-Buffer pass
     if(mpModel)
     {
@@ -429,24 +441,6 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
                 mpAreaLight->setSamplesIntoProgramVars(pSampleCB[i].get(), varNames[i], i);
             }
         } 
-        if (mAreaLightRenderMode == AreaLightRenderMode::LTC || mAreaLightRenderMode == AreaLightRenderMode::LtcBrdf)
-        {
-            mpLightingVars->setTexture("gMinv", mLtcMInv);
-            mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff);
-        }
-        if (mAreaLightRenderMode == AreaLightRenderMode::LTSH || mAreaLightRenderMode == AreaLightRenderMode::LtshBrdf)
-        {
-            mpLightingVars->setTexture("gMinv", mLtshMInv);
-            mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
-        }
-        if (mAreaLightRenderMode == AreaLightRenderMode::LTSH_N3)
-        {
-            mpLightingVars->setTexture("gMinv", mLtshMInvN3);
-            mpLightingVars->setTexture("gLtshCoeffN3", mLtshCoeffN3);
-        }
-
-        // Set texture sampler
-        mpLightingVars->setSampler("gSampler", mSampler);
 
         // Set camera position
         pLightCB->setVariable("gCamPosW", mpCamera->getPosition());

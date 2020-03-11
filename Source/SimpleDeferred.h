@@ -132,4 +132,6 @@ private:
 
     Texture::SharedPtr mLtshMInvN3;
     Texture::SharedPtr mLtshCoeffN3;
+
+    bool mInitTextures = true;
 };
