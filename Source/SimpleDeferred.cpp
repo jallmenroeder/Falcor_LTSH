@@ -399,6 +399,8 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         ConstantBuffer::SharedPtr pDefferedCB = mpDeferredVars["PolygonData"];
         mpAreaLight->setPolygonIntoDeferred(pDefferedCB.get());
 
+        PROFILE("DeferredPass");
+
         pState->setProgram(mpDeferredPassProgram);
         ModelRenderer::render(pRenderContext, mpModel, mpCamera.get());
     }
@@ -459,6 +461,7 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpLightingVars->setTexture("gGBuf2", mpGBufferFbo->getColorTexture(2));
         mpLightingVars->setTexture("gGBuf3", mpGBufferFbo->getColorTexture(3));
 
+        PROFILE("LightingPass");
 
         // Kick it off
         pRenderContext->setGraphicsVars(mpLightingVars);
