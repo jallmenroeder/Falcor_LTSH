@@ -93,8 +93,13 @@ static const float b = .5f / 64.f;
 
 // returns a random float in [0,1] based on a 2d point (texC)
 // taken from Golden Noise: https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
-float rand(in float2 xy) {
-    return frac(tan(distance(xy * 1.61803398874989484820459f, xy) * gSeed) * xy.x);
+float rand2(in float2 xy) {
+    return frac(tan(distance(xy * 1.61803398874989484820459f, xy) * round(gSeed) * xy.x);
+}
+
+float rand(in float2 uv) {
+    float noiseX = (frac(sin(dot(uv, float2(12.9898, 78.233) * 2.0)) * 43758.5453));
+    return noiseX;
 }
 
 float2 cos_theta_roughness_to_uv(float cosTheta, float roughness) {
