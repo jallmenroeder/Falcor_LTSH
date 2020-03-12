@@ -31,7 +31,7 @@
 
 const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
-//const std::string SimpleDeferred::skDefaultModel = "Media/plane.fbx";
+//const std::string SimpleDeferred::skDefaultModel = "Media/plane.dae";
 
 const int legendre_res = 10000;
 
@@ -453,7 +453,7 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         // Area light render mode
         pLightCB->setVariable("gAreaLightRenderMode", (uint32_t)mAreaLightRenderMode);
 
-        pLightCB->setVariable("gSeed", static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 1000000.f));
+        pLightCB->setVariable("gSeed", static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 10000000.f));
 
         // Set GBuffer as input
         mpLightingVars->setTexture("gGBuf0", mpGBufferFbo->getColorTexture(0));
