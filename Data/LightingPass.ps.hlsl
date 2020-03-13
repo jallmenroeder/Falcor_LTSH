@@ -94,7 +94,7 @@ static const float b = .5f / 64.f;
 // returns a random float in [0,1] based on a 2d point (texC)
 // taken from Golden Noise: https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
 float rand2(in float2 xy) {
-    return frac(tan(distance(xy * 1.61803398874989484820459f, xy) * round(gSeed) * xy.x);
+    return frac(tan(distance(xy * 1.61803398874989484820459f, xy) * round(gSeed)) * xy.x);
 }
 
 float rand(in float2 uv) {
