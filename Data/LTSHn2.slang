@@ -1,8 +1,6 @@
 #ifndef _FALCOR_LTSH_N2_SLANG_
 #define _FALCOR_LTSH_N2_SLANG_
 
-// The following code is mostly taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang
-
 __import LTSH;
 
 Texture2D<float4> gLtshMinvN2;
@@ -37,6 +35,8 @@ void getLtshCoeffsN2(in int2 uv, out float[9] coeffs) {
     coeffs[8] = gLtshCoeffN2.Load(indices).r;
 }
 
+
+// ------- BEGIN: The following code is taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang ---------
 void boundaryN2(float a, float b, float x, int maxN, inout float B_n[3]) {
     float z = a*cos(x) + b*sin(x);
     float tmp1 = a*sin(x) - b*cos(x);
@@ -141,5 +141,7 @@ void polygonSHN2(float3 L[5], int numVerts, inout float Lcoeff[9]) {
     Lcoeff[7] += dot(float2(-0.27666329, -0.76671491), float2(w23[2], w24[2]));
     Lcoeff[8] = dot(float2(-1.15470843, -0.57735948), float2(w23[2], w24[2]));
 }
+
+// ------- END: The following code is taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang ---------
 
 #endif	// _FALCOR_LTSH_N2_SLANG_

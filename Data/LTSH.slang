@@ -1,8 +1,6 @@
 #ifndef _FALCOR_LTSH_SLANG_
 #define _FALCOR_LTSH_SLANG_
 
-// The following code is mostly taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang
-
 __import ShaderCommon;
 __import Lights;
 
@@ -41,6 +39,8 @@ void getLtshCoeffs(in int2 uv, out float[25] coeffs) {
     coeffs[24] = gLtshCoeff.Load(indices).r;
 }
 
+
+// ------ BEGIN: The following code is taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang ---------
 float solid_angle(float3 verts[5], int numVerts) {
     float sa = 0;
     float3 tmp1 = cross(verts[0], verts[numVerts-1]);
@@ -240,7 +240,10 @@ void polygonSH(float3 L[5], int numVerts, inout float Lcoeff[25]) {
     Lcoeff[24] = dot(float3(0.466450172383, 1.19684418958, -0.158210638771), float3(w22[4], w23[4], w24[4]));
     Lcoeff[24] += dot(float2(0.466416144347, 0.000906975300098), float2(w25[4], w26[4]));
 }
+// ------ END: The following code is taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang ---------
 
+
+// ---------------- BEGIN: this code was provided by Christoph Peters and is used with permission -------------------
 float evaluateSH(float x, float y, float z, float[25] coefficients) {
     float legendre0_0 = 1.0;
     float legendre1_0 = 1.00000000000000000e+00 * z * legendre0_0;
@@ -309,6 +312,7 @@ float evaluateSH(float x, float y, float z, float[25] coefficients) {
     }
     return sum;
 }
+// ---------------- END: this code was provided by Christoph Peters and is used with permission -------------------
 
 float3 evalLtshBrdf(ShadingData sd, LightSample ls, float3x3 MInv, float[25] coefficients) {
     float3 LInv = mul(MInv, ls.L);
