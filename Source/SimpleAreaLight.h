@@ -44,6 +44,10 @@ public:
     */
     bool getSampleCreation() { return mSampleCreation; }
 
+    /** Returns the world space position
+    */
+    glm::vec3 getPosition() { return mData.posW; }
+
     /** Returns if samples need to be created
     */
     void setSampleCreation(bool val) { mSampleCreation = val; update(); }

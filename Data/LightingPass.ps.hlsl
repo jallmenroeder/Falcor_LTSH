@@ -30,7 +30,7 @@ __import ShaderCommon;
 __import Shading;
 __import LTC;
 __import LTSH;
-__import LTSHn3;
+__import LTSHn2;
 __import Lights;
 __import BRDF;
 
@@ -43,17 +43,21 @@ cbuffer PerImageCB
     // G-Buffer
     // Camera position
     float3 gCamPosW;
+
     // Lighting params
     LightData gDirLight;
     LightData gPointLight;
     LightData gAreaLight;
     float3 gAmbient;
-    // Debug mode
+
+    // state
     uint gDebugMode;
-    // Area light render mode
     uint gAreaLightRenderMode;
+
+    // Vertices of the area light polygon
     float4 gAreaLightPosW[NumVertices];
 
+    // Pseudo random seed from CPU
     float gSeed;
 };
 
@@ -65,10 +69,10 @@ cbuffer SampleCB3 { float4 lightSamples3[NumSamples]; };
 SamplerState gSampler;
 Texture2D<float4> gLtcMinv;
 Texture2D<float4> gLtshMinv;
-Texture2D<float4> gLtshMinvN3;
+Texture2D<float4> gLtshMinvN2;
 Texture2D<float> gLtcCoeff;
 Texture2D<float4> gLtshCoeff;
-Texture2D<float4> gLtshCoeffN3;
+Texture2D<float4> gLtshCoeffN2;
 
 // Debug modes
 #define ShowPos         1
@@ -85,7 +89,7 @@ Texture2D<float4> gLtshCoeffN3;
 #define None            3
 #define LtcBrdf         4
 #define LtshBrdf        5
-#define LTSH_N3         6
+#define LTSH_N2         6
 
 // for unbiased texture access
 static const float m = 63.f / 64.f;
@@ -93,25 +97,27 @@ static const float b = .5f / 64.f;
 
 // returns a random float in [0,1] based on a 2d point (texC)
 // taken from Golden Noise: https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
-float rand2(in float2 xy) {
-    return frac(tan(distance(xy * 1.61803398874989484820459f, xy) * round(gSeed)) * xy.x);
-}
-
-float rand(in float2 uv) {
+float rand(in float2 uv)
+{
     float noiseX = (frac(sin(dot(uv, float2(12.9898, 78.233) * 2.0)) * 43758.5453));
     return noiseX;
 }
 
-float2 cos_theta_roughness_to_uv(float cosTheta, float roughness) {
-
+// converts view direction and roughness to two floats in [0,63] to fetch the correct transformation matrix
+float2 cos_theta_roughness_to_uv(float cosTheta, float roughness)
+{
     float l_idx = acos(cosTheta) / 1.57079;
     float a_idx = sqrt(roughness);
     return float2(l_idx, a_idx);
 }
 
 // Dithering
-int3 dither(float2 uv, float2 texC) {
-    int3 view_alpha = int3(floor(uv), 0);
+// randomly rounds up or down a float2 
+// the probability corresponds to how close the input float is to the closest integers
+// 1.3 -> 1 with 70% and -> 2 with 30% probability
+int2 dither(float2 uv, float2 texC) 
+{
+    int2 view_alpha = int2(floor(uv));
 
     float view_frac = frac(uv.x - view_alpha.x);
     float alpha_frac = frac(uv.y - view_alpha.y);
@@ -154,10 +160,8 @@ LightSample calculateAreaLightSample(inout ShadingData sd, in LightData light, i
     return ls;
 }
 
-ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 specularColor)
-{
-    ShadingResult sr = initShadingResult();
 
+float3 evalDiffuseAreaLight(ShadingData sd, LightData light) {
     // diffuse lighting
     float3x3 Identity = float3x3(
         1, 0, 0,
@@ -165,10 +169,15 @@ ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 s
         0, 0, 1
         );
 
-    sr.diffuse = LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity) * sd.diffuse;
+    return LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity) * sd.diffuse / 2.0 / 3.14159;
+}
 
-    // normalize
-    sr.diffuse /= 2 * 3.14159;
+
+ShadingResult evalMaterialAreaLightLTC(ShadingData sd, LightData light, float3 specularColor)
+{
+    ShadingResult sr = initShadingResult();
+
+    sr.diffuse = evalDiffuseAreaLight(sd, light);
 
     float2 uv = cos_theta_roughness_to_uv(sd.NdotV, sd.roughness);
 
@@ -190,24 +199,13 @@ ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 
 {
     ShadingResult sr = initShadingResult();
 
-    // diffuse lighting
-    float3x3 Identity = float3x3(
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1
-        );
-
-    sr.diffuse = LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity) * sd.diffuse;
-
-    // normalize
-    sr.diffuse /= 2 * 3.14159;
-    sr.diffuse = sr.diffuse;
+    sr.diffuse = evalDiffuseAreaLight(sd, light);
 
     float2 uv = cos_theta_roughness_to_uv(sd.NdotV, sd.roughness);
     // translate from [0,1] to [0,63]
     uv *= 63.f;
 
-    int3 view_alpha = dither(uv, texC);
+    int2 view_alpha = dither(uv, texC);
 
     // specular lighting
     float3x3 MInv = getLtshMatrix(view_alpha);
@@ -255,31 +253,20 @@ ShadingResult evalMaterialAreaLightLTSH(ShadingData sd, LightData light, float3 
     return sr;
 }
 
-ShadingResult evalMaterialAreaLightLTSH_N3(ShadingData sd, LightData light, float3 specularColor, float2 texC)
+ShadingResult evalMaterialAreaLightLTSH_N2(ShadingData sd, LightData light, float3 specularColor, float2 texC)
 {
     ShadingResult sr = initShadingResult();
 
-    // diffuse lighting
-    float3x3 Identity = float3x3(
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1
-        );
-
-    sr.diffuse = LTC_Evaluate(sd.N, sd.V, sd.posW, Identity, gAreaLightPosW, true, light.intensity) * sd.diffuse;
-
-    // normalize
-    sr.diffuse /= 2 * 3.14159;
-    sr.diffuse = sr.diffuse;
+    sr.diffuse = evalDiffuseAreaLight(sd, light);
 
     float2 uv = cos_theta_roughness_to_uv(sd.NdotV, sd.roughness);
     // translate from [0,1] to [0,63]
     uv *= 63.f;
 
-    int3 view_alpha = dither(uv, texC);
+    int2 view_alpha = dither(uv, texC);
 
     // specular lighting
-    float3x3 MInv = getLtshMatrixN3(view_alpha);
+    float3x3 MInv = getLtshMatrixN2(view_alpha);
 
     // construct orthonormal basis around N
     float3 T1, T2;
@@ -309,10 +296,10 @@ ShadingResult evalMaterialAreaLightLTSH_N3(ShadingData sd, LightData light, floa
         L[4] = normalize(mul(MInv, L[4]));
 
         float Lc[9];
-        polygonSHN3(L, n, Lc);
+        polygonSHN2(L, n, Lc);
 
         float coeffs[9];
-        getLtshCoeffsN3(view_alpha, coeffs);
+        getLtshCoeffsN2(view_alpha, coeffs);
         for (int i = 0; i < 9; i++)
         {
             result += Lc[i] * coeffs[i];
@@ -335,7 +322,7 @@ ShadingResult evalMaterialAreaLightGroundTruth(ShadingData sd, LightData light, 
 
     uv *= 63.f;
 
-    int3 view_alpha = dither(uv, texC);
+    int2 view_alpha = dither(uv, texC);
 
     float3x3 MInv_cos = getLtcMatrix(cos_uv);
     float3x3 MInv_sh = getLtshMatrix(view_alpha);
@@ -413,7 +400,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
     sd.diffuse = albedo.rgb;
     sd.opacity = 0;
 
-    // sd.specular is used as F0 in BRDF.slang and needs to be fixed four our technique
+    // sd.specular is used as F0 in BRDF.slang and needs to be fixed for our technique
     sd.specular = .4f;
     sd.roughness = max(roughness, .1f);
 
@@ -427,8 +414,8 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
         areaResult = evalMaterialAreaLightLTC(sd, gAreaLight, specular);
     else if (gAreaLightRenderMode == LTSH)
         areaResult = evalMaterialAreaLightLTSH(sd, gAreaLight, specular, texC);
-    else if (gAreaLightRenderMode == LTSH_N3)
-        areaResult = evalMaterialAreaLightLTSH_N3(sd, gAreaLight, specular, texC);
+    else if (gAreaLightRenderMode == LTSH_N2)
+        areaResult = evalMaterialAreaLightLTSH_N2(sd, gAreaLight, specular, texC);
     else if (gAreaLightRenderMode == None)
         areaResult = initShadingResult();
 

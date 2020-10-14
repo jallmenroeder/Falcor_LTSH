@@ -1,7 +1,7 @@
 #ifndef _FALCOR_LTSH_SLANG_
 #define _FALCOR_LTSH_SLANG_
 
-// code taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang
+// The following code is mostly taken from https://cseweb.ucsd.edu/~viscomp/projects/ash/, some refactoring was done to make glsl code base compile as hlsl/slang
 
 __import ShaderCommon;
 __import Lights;
@@ -12,9 +12,10 @@ static float INV_PI = 0.31830988618f;
 Texture2D<float4> gLtshMinv;
 Texture2D<float4> gLtshCoeff;
 
-float3x3 getLtshMatrix(in int3 uv)
+float3x3 getLtshMatrix(in int2 uv)
 {
-    float4 matVec = gLtshMinv.Load(uv);
+    int3 indices = int3(uv, 0);
+    float4 matVec = gLtshMinv.Load(indices);
     float3x3 mat = float3x3(
         1, 0, matVec.z,
         0, matVec.y, 0,
@@ -24,19 +25,20 @@ float3x3 getLtshMatrix(in int3 uv)
     return mat;
 }
 
-void getLtshCoeffs(in int3 uv, out float[25] coeffs) {
+void getLtshCoeffs(in int2 uv, out float[25] coeffs) {
     float4 texFetch;
+    int3 indices = int3(uv, 0);
 
     // all the odd coefficients need to be negated due to a different convention in the Wang/Ramamoorthi code
     for (int i = 0; i < 6; i++) {
-        texFetch = gLtshCoeff.Load(uv);
+        texFetch = gLtshCoeff.Load(indices);
         coeffs[i * 4 + 0] = texFetch.r;
         coeffs[i * 4 + 1] = -texFetch.g;
         coeffs[i * 4 + 2] = texFetch.b;
         coeffs[i * 4 + 3] = -texFetch.a;
-        uv.x += 64;
+        indices.x += 64;
     }
-    coeffs[24] = gLtshCoeff.Load(uv).r;
+    coeffs[24] = gLtshCoeff.Load(indices).r;
 }
 
 float solid_angle(float3 verts[5], int numVerts) {

@@ -169,7 +169,7 @@
     <None Include="Data\LTSH.slang">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <None Include="Data\LTSHn3.slang">
+    <None Include="Data\LTSHn2.slang">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="Data\Polygon.slang">

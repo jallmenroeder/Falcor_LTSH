@@ -1,6 +1,10 @@
 #include "SimpleAreaLight.h"
 #include "PolygonUtil.h"
 
+// A simple area light consists 4 vertices in the xy plane, a position and a direction. 
+// The position transforms the origin of the xy plane to specified worldspace position.
+// The direction is the normal of the planar polygon.
+// In theory, the technique supports arbitrary planar polygons, but only polygons with 4 vertices are supported by the shader implementation.
 
 // Code for simple area lights.
 SimpleAreaLight::SharedPtr SimpleAreaLight::create()
@@ -70,7 +74,7 @@ void SimpleAreaLight::update()
     mData.transMatIT = glm::inverse(glm::transpose(mData.transMat));
 
     // calculate surface area (ref: https://web.archive.org/web/20100405070507/http://valis.cs.uiuc.edu/~sariel/research/CG/compgeom/msg00831.html)
-    // note that vertices must be counter clockwise, else the result will be negative
+    // note that vertices must be counter clockwise or else the result will be negative
     mData.surfaceArea = 0.f;
     for (int i = 0; i < NUM_VERTICES; ++i)
     {

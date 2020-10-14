@@ -101,7 +101,7 @@ private:
         Disabled,
         LtcBrdf,
         LtshBrdf,
-        LTSH_N3,
+        LTSH_N2,
     } mAreaLightRenderMode = AreaLightRenderMode::GroundTruth;
 
     DepthStencilState::SharedPtr mpNoDepthDS;
@@ -130,8 +130,8 @@ private:
     Texture::SharedPtr mLtshMInv;
     Texture::SharedPtr mLtshCoeff;
 
-    Texture::SharedPtr mLtshMInvN3;
-    Texture::SharedPtr mLtshCoeffN3;
+    Texture::SharedPtr mLtshMInvN2;
+    Texture::SharedPtr mLtshCoeffN2;
 
     bool mInitTextures = true;
 };

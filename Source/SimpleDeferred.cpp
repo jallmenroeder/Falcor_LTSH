@@ -72,7 +72,7 @@ void convertLtshCoeff(const std::vector<double>& in, std::vector<glm::detail::hd
 }
 
 // convert ltsh coefficient data read from .npy file to a buffer which can written in the texture, differs from ltc becaus ltsh has more coefficients
-void convertLtshCoeffN3(const std::vector<double>& in, std::vector<glm::detail::hdata>& out)
+void convertLtshCoeffN2(const std::vector<double>& in, std::vector<glm::detail::hdata>& out)
 {
     // we only need 9 coefficients but to fit the RGBA texture we pad to 12, this gives 3 64x64 fields containing 4(RGBA) coefficients
     out = std::vector<glm::detail::hdata>(64 * 64 * 12);
@@ -174,11 +174,11 @@ void SimpleDeferred::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
     Gui::DropdownList areaLightRenderModeList;
     areaLightRenderModeList.push_back({ 0, "Ground Truth" });
     areaLightRenderModeList.push_back({ 1, "LTC" });
-    areaLightRenderModeList.push_back({ 2, "LTSH" });
+    areaLightRenderModeList.push_back({ 2, "LTSH_N4" });
+    areaLightRenderModeList.push_back({ 6, "LTSH_N2" });
     areaLightRenderModeList.push_back({ 3, "None" });
     areaLightRenderModeList.push_back({ 4, "GT with LTC BRDF" });
-    areaLightRenderModeList.push_back({ 5, "GT with LTSH BRDF" });
-    areaLightRenderModeList.push_back({ 6, "LTSH_N3" });
+    areaLightRenderModeList.push_back({ 5, "GT with LTSH_N4 BRDF" });
     pGui->addDropdown("Area Light Render Mode", areaLightRenderModeList, (uint32_t&)mAreaLightRenderMode);
 
     Gui::DropdownList cullList;
@@ -209,8 +209,8 @@ void SimpleDeferred::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
     }
 
     Gui::DropdownList cameraList;
+    cameraList.push_back({ FirstPersonCamera, "First-Person" });
     cameraList.push_back({ModelViewCamera, "Model-View"});
-    cameraList.push_back({FirstPersonCamera, "First-Person"});
     pGui->addDropdown("Camera Type", cameraList, (uint32_t&)mCameraType);
 
     if (mpModel)
@@ -298,13 +298,11 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
 
     mpAreaLight = SimpleAreaLight::create();
     mpAreaLight->setScaling(glm::vec3(1.5f, 1.f, 1.f));
-    glm::vec3 pos = glm::vec3(7.f, 5.f, 0.f);
-    glm::vec3 pivot = glm::vec3(6.f, 5.f, 0.f);
+    glm::vec3 pos = glm::vec3(5.f, 2.f, 28.f);
+    glm::vec3 pivot = glm::vec3(4.f, 2.f, 29.f);
     glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
     mpAreaLight->move(pos, pivot, up);
     mpAreaLight->setIntensity(glm::vec3(10.f, 10.f, 10.f));
-
-    mpCamera->move(glm::vec3(-8.8f, 5.7f, -10.3f), glm::vec3(-8.f, 5.6f, -9.6f), glm::vec3(0.f, 1.f, 0.f));
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
@@ -323,25 +321,25 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     convertDoubleToFloat(temp, data);
     mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
-    // Load LTSH matrices for N=5
-    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n5_t128.npy", temp);
+    // Load LTSH matrices for N=4
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n4_t128.npy", temp);
     convertDoubleToFloat(temp, data);
     mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
-    // Load LTSH coefficients for N=5
-    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n5_t128.npy", temp);
+    // Load LTSH coefficients for N=4
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n4_t128.npy", temp);
     convertLtshCoeff(temp, data);
     mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
-    // Load LTSH matrices for N=3
-    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n3_t128.npy", temp);
+    // Load LTSH matrices for N=2
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n2_t128.npy", temp);
     convertDoubleToFloat(temp, data);
-    mLtshMInvN3 = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+    mLtshMInvN2 = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
-    // Load LTSH coefficients for N=3
-    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n3_t128.npy", temp);
-    convertLtshCoeffN3(temp, data);
-    mLtshCoeffN3 = Texture::create2D(64 * 3, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
+    // Load LTSH coefficients for N=2
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n2_t128.npy", temp);
+    convertLtshCoeffN2(temp, data);
+    mLtshCoeffN2 = Texture::create2D(64 * 3, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Create Sampler
     Sampler::Desc desc;
@@ -364,8 +362,8 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         mpLightingVars->setTexture("gLtcCoeff", mLtcCoeff); 
         mpLightingVars->setTexture("gLtshMinv", mLtshMInv);
         mpLightingVars->setTexture("gLtshCoeff", mLtshCoeff);
-        mpLightingVars->setTexture("gLtshMinvN3", mLtshMInvN3);
-        mpLightingVars->setTexture("gLtshCoeffN3", mLtshCoeffN3);
+        mpLightingVars->setTexture("gLtshMinvN2", mLtshMInvN2);
+        mpLightingVars->setTexture("gLtshCoeffN2", mLtshCoeffN2);
         mpLightingVars->setSampler("gSampler", mSampler);
         mInitTextures = false;
     }
@@ -521,16 +519,19 @@ void SimpleDeferred::resetCamera()
     {
         // update the camera position
         float radius = mpModel->getRadius();
-        const glm::vec3& modelCenter = mpModel->getCenter();
-        glm::vec3 camPos = modelCenter;
-        camPos.z += radius * 4;
+        const glm::vec3& target = mpAreaLight->getPosition();
+        glm::vec3 camPos = glm::vec3(-8.8f, 5.7f, -10.3f);
+        //const glm::vec3& target = mpModel->getCenter();
+        //glm::vec3 camPos = target;
+        //camPos.z += radius * 4;
 
+        // set camera
         mpCamera->setPosition(camPos);
-        mpCamera->setTarget(modelCenter);
+        mpCamera->setTarget(target);
         mpCamera->setUpVector(glm::vec3(0, 1, 0));
 
         // Update the controllers
-        mModelViewCameraController.setModelParams(modelCenter, radius, 4);
+        mModelViewCameraController.setModelParams(target, radius * 0.1f, 0.4f);
         mFirstPersonCameraController.setCameraSpeed(radius*0.25f);
         mNearZ = std::max(0.1f, mpModel->getRadius() / 750.0f);
         mFarZ = radius * 10;
