@@ -15,4 +15,4 @@ This project is not a standalone and needs to be integrated into the Falcor Fram
 Thanks to Eric Heitz and his research team as well as Wang and Ramamoorthi for providing their code as I relied on their techniques and could reuse significant parts. 
 A huge shoutout goes to my advisor Christoph Peters who put in a lot of time and expertise to help me with and review my work.
 And thanks to NVIDIA for providing the [Falcor framework!](https://developer.nvidia.com/falcor)
-You find the full list of references in my thesis (TODO: insert link).
+You find the full list of references in my [thesis](http://www.jallmenroeder.de/wp-content/uploads/2020/10/LTSH_BA_Thesis_final.pdf).
