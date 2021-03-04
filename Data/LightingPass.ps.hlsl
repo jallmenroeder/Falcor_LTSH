@@ -35,7 +35,7 @@ __import Lights;
 __import BRDF;
 
 #define NumSamples 4096
-#define SampleReductionFactor 16
+#define SampleReductionFactor 4
 #define NumVertices 4
 
 cbuffer PerImageCB
@@ -103,7 +103,7 @@ float rand(in float2 uv)
     return noiseX;
 }
 
-// converts view direction and roughness to two floats in [0,63] to fetch the correct transformation matrix
+// converts view direction and roughness to two floats in [0,1] to fetch the correct transformation matrix
 float2 cos_theta_roughness_to_uv(float cosTheta, float roughness)
 {
     float l_idx = acos(cosTheta) / 1.57079;
@@ -402,6 +402,7 @@ float3 shade(float3 posW, float3 normalW, float linearRoughness, float4 albedo, 
 
     // sd.specular is used as F0 in BRDF.slang and needs to be fixed for our technique
     sd.specular = .4f;
+    // our hacky ground truth implementation can't handle very specular surfaces so we clamp it to 0.1
     sd.roughness = max(roughness, .1f);
 
     /* Do lighting */
@@ -467,6 +468,5 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
     };
 
     float3 color = shade(posW, normalW, linearRoughness, albedo, specular, roughness, texC);
-
     return float4(color, 1);
 }
