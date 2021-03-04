@@ -95,8 +95,9 @@ void SimpleAreaLight::update()
         vertices_3d.emplace_back(glm::vec3(vert_2d.x, vert_2d.y, 0.f));
         auto scaling2d = glm::vec2(mScaling.x, mScaling.y);
         mScaledVertices2d.emplace_back(vert_2d * scaling2d);
-        mMin = glm::min(vert_2d * scaling2d, mMin);
-        mMax = glm::max(vert_2d * scaling2d, mMax);
+        // unscaled min and max, scaling is applied later
+        mMin = glm::min(vert_2d, mMin);
+        mMax = glm::max(vert_2d, mMax);
     }
 
     for (auto vert_3d : vertices_3d)
