@@ -88,6 +88,8 @@ bool intersectRayPlane(float3 rayOrigin, float3 rayDirection, float3 posOnPlane,
         return false;
 
     float s = dot(planeNormal, (posOnPlane - rayOrigin)) / RdotN;
+    if (s < 1e-5) 
+        return false;
 
     intersectionPoint = rayOrigin + s * rayDirection;
 
