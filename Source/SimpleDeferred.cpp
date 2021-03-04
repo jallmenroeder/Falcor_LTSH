@@ -29,14 +29,24 @@
 #include "PolygonUtil.h"
 #include "Numpy.hpp"
 
-const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
+//const std::string SimpleDeferred::skDefaultModel = "Media/SunTemple/SunTemple.fbx";
 //const std::string SimpleDeferred::skDefaultModel = "Media/sponza/sponza.dae";
 //const std::string SimpleDeferred::skDefaultModel = "Media/plane.dae";
+const std::string SimpleDeferred::skDefaultModel = "Media/Arcade/Arcade.fbx";
 
 const int legendre_res = 10000;
 
 // convert matrix data read from .npy file to a buffer which can written in the texture
-void convertDoubleToFloat(const std::vector<double>& in, std::vector<glm::detail::hdata>& out)
+void convertFloat32ToFloat16(const std::vector<float>& in, std::vector<glm::detail::hdata>& out)
+{
+    out.clear();
+    for (auto val : in)
+    {
+        out.push_back(glm::detail::toFloat16(float(val)));
+    }
+}
+
+void convertDoubleToFloat16(const std::vector<double>& in, std::vector<glm::detail::hdata>& out)
 {
     out.clear();
     for (auto val : in)
@@ -292,53 +302,70 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     mpLinearSampler = Sampler::create(samplerDesc);
 
     mpPointLight = PointLight::create();
+    mpPointLight->setIntensity(glm::vec3(0.f));
     mpDirLight = DirectionalLight::create();
     mpDirLight->setIntensity(glm::vec3(0));
     mpDirLight->setWorldDirection(glm::vec3(-0.5f, -0.2f, -1.0f));
 
     mpAreaLight = SimpleAreaLight::create();
-    mpAreaLight->setScaling(glm::vec3(1.5f, 1.f, 1.f));
-    glm::vec3 pos = glm::vec3(5.f, 2.f, 28.f);
-    glm::vec3 pivot = glm::vec3(4.f, 2.f, 29.f);
+    mpAreaLight->setScaling(glm::vec3(.25f, .25f, 1.f));
+    glm::vec3 pos = glm::vec3(-.5f, .7f, -0.5f);
+    glm::vec3 pivot = pos + glm::vec3(.2f, 0.f, .98f);
     glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
     mpAreaLight->move(pos, pivot, up);
-    mpAreaLight->setIntensity(glm::vec3(10.f, 10.f, 10.f));
+    mpAreaLight->setIntensity(glm::vec3(150.f, 150.f, 150.f));
+
+    mAreaLightRenderMode = AreaLightRenderMode::LTSH;
+    mDebugMode = DebugMode::Specular;
 
     mpDeferredVars = GraphicsVars::create(mpDeferredPassProgram->getReflector());
     mpLightingVars = GraphicsVars::create(mpLightingPass->getProgram()->getReflector());
 
-    std::vector<double> temp = std::vector<double>();
+    std::vector<double> d_temp = std::vector<double>();
+    std::vector<float> f_temp = std::vector<float>();
     std::vector<glm::detail::hdata> data = std::vector<glm::detail::hdata>();
 
 
     // Load LTC matrices
-    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat_t128.npy", temp);
-    convertDoubleToFloat(temp, data);
+    aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat_t128.npy", d_temp);
+    convertDoubleToFloat16(d_temp, data);
+    //aoba::LoadArrayFromNumpy("Data/Params/inv_cos_mat.npy", f_temp);
+    //convertFloat32ToFloat16(f_temp, data);
     mLtcMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTC coefficients
-    aoba::LoadArrayFromNumpy("Data/Params/cos_coeff_t128.npy", temp);
-    convertDoubleToFloat(temp, data);
+    aoba::LoadArrayFromNumpy("Data/Params/cos_coeff_t128.npy", d_temp);
+    convertDoubleToFloat16(d_temp, data);
+    //aoba::LoadArrayFromNumpy("Data/Params/cos_coeff.npy", f_temp);
+    //convertFloat32ToFloat16(f_temp, data);
     mLtcCoeff = Texture::create2D(64, 64, ResourceFormat::R16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH matrices for N=4
-    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n4_t128.npy", temp);
-    convertDoubleToFloat(temp, data);
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n4_t128.npy", d_temp);
+    convertDoubleToFloat16(d_temp, data);
+    //aoba::LoadArrayFromNumpy("Data/Params/inv_sh_n4_mat.npy", f_temp);
+    //convertFloat32ToFloat16(f_temp, data);
     mLtshMInv = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients for N=4
-    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n4_t128.npy", temp);
-    convertLtshCoeff(temp, data);
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n4_t128.npy", d_temp);
+    convertLtshCoeff(d_temp, data);
+    //aoba::LoadArrayFromNumpy("Data/Params/sh_n4_coeff.npy", f_temp);
+    //convertLtshCoeff(f_temp, data);
     mLtshCoeff = Texture::create2D(64 * 7, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH matrices for N=2
-    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n2_t128.npy", temp);
-    convertDoubleToFloat(temp, data);
+    aoba::LoadArrayFromNumpy("Data/Params/inv_sh_mat_n2_t128.npy", d_temp);
+    convertDoubleToFloat16(d_temp, data);
+    //aoba::LoadArrayFromNumpy("Data/Params/inv_sh_n2_mat.npy", f_temp);
+    //convertFloat32ToFloat16(f_temp, data);
     mLtshMInvN2 = Texture::create2D(64, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Load LTSH coefficients for N=2
-    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n2_t128.npy", temp);
-    convertLtshCoeffN2(temp, data);
+    aoba::LoadArrayFromNumpy("Data/Params/sh_coeff_n2_t128.npy", d_temp);
+    convertLtshCoeffN2(d_temp, data);
+    //aoba::LoadArrayFromNumpy("Data/Params/sh_n2_coeff.npy", f_temp);
+    //convertLtshCoeffN2(f_temp, data);
     mLtshCoeffN2 = Texture::create2D(64 * 3, 64, ResourceFormat::RGBA16Float, 1, 1, data.data(), Resource::BindFlags::ShaderResource);
 
     // Create Sampler
@@ -465,6 +492,30 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
         pRenderContext->setGraphicsVars(mpLightingVars);
         mpLightingPass->execute(pRenderContext);
     }
+
+    auto tempTarget = mpCamera->getTarget();
+    auto tempPos = mpCamera->getPosition();
+
+    if (mSaveNextFrame) {
+        if (mScreenshotFbo.get() == nullptr) {
+            auto desc = pTargetFbo->getDesc();
+            desc.setColorTarget(0, ResourceFormat::RGBA32Float);
+            mScreenshotFbo = FboHelper::create2D(pTargetFbo->getWidth(), pTargetFbo->getHeight(), desc);
+        }
+        pState->setFbo(mScreenshotFbo);
+        pRenderContext->clearFbo(mScreenshotFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::Color);
+        mpLightingPass->execute(pRenderContext);
+
+        // save newly rendered HDR image
+        auto frame = mScreenshotFbo->getColorTexture(0).get();
+        frame->captureToFile(0, 0, "screenshot" + std::to_string(mSaveCount) + ".exr", Falcor::Bitmap::FileFormat::ExrFile);
+
+        // save png
+        auto png_frame = pTargetFbo->getColorTexture(0).get();
+        png_frame->captureToFile(0, 0, "screenshot" + std::to_string(mSaveCount) + ".png");
+        mSaveNextFrame = false;
+        mSaveCount++;
+    }
 }
 
 void SimpleDeferred::onShutdown(SampleCallbacks* pSample)
@@ -483,6 +534,9 @@ bool SimpleDeferred::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& k
             {
             case KeyboardEvent::Key::R:
                 resetCamera();
+                break;
+            case KeyboardEvent::Key::K:
+                mSaveNextFrame = true;
                 break;
             default:
                 bHandled = false;
@@ -519,16 +573,15 @@ void SimpleDeferred::resetCamera()
     {
         // update the camera position
         float radius = mpModel->getRadius();
-        const glm::vec3& target = mpAreaLight->getPosition();
-        glm::vec3 camPos = glm::vec3(-8.8f, 5.7f, -10.3f);
-        //const glm::vec3& target = mpModel->getCenter();
-        //glm::vec3 camPos = target;
-        //camPos.z += radius * 4;
+        //const glm::vec3& target = mpAreaLight->getPosition();
+        const glm::vec3& target = glm::vec3(-0.5129f, 0.3637f, 1.7148f);
+        glm::vec3 camPos = glm::vec3(-.6603f, .715f, 2.6394f);
 
         // set camera
         mpCamera->setPosition(camPos);
         mpCamera->setTarget(target);
         mpCamera->setUpVector(glm::vec3(0, 1, 0));
+        mCameraType = FirstPersonCamera;
 
         // Update the controllers
         mModelViewCameraController.setModelParams(target, radius * 0.1f, 0.4f);

@@ -133,5 +133,8 @@ private:
     Texture::SharedPtr mLtshMInvN2;
     Texture::SharedPtr mLtshCoeffN2;
 
+    Fbo::SharedPtr mScreenshotFbo;
     bool mInitTextures = true;
+    bool mSaveNextFrame = false;
+    int mSaveCount = 0;
 };
