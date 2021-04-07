@@ -377,6 +377,22 @@ void SimpleDeferred::onLoad(SampleCallbacks* pSample, RenderContext* pRenderCont
     loadModelFromFile(skDefaultModel, pSample->getCurrentFbo().get());
 }
 
+// Function to move camera back and forth between start and end points with given camera targets
+void cameraReel(uint64_t frameID, Camera::SharedPtr camera) {
+    glm::vec3 startPos = glm::vec3(-1.488, 1.198, 1.764);
+    glm::vec3 startTarget = glm::vec3(-0.946, 0.905, 0.977);
+    glm::vec3 endPos = glm::vec3(-0.519, 0.567, 2.371);
+    glm::vec3 endTarget = glm::vec3(-0.272, 0.442, 1.410);
+
+    auto posDiff = endPos - startPos;
+    auto targetDiff = endTarget - startTarget;
+    auto pos = startPos + posDiff * (sin(frameID / 100.f) + 1) * 0.5f;
+    auto target = startTarget + targetDiff * (sin(frameID / 100.f) + 1) * 0.5f;
+    camera->setPosition(pos);
+    camera->setTarget(target);
+}
+
+
 void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
     GraphicsState* pState = pRenderContext->getGraphicsState().get();
@@ -400,6 +416,8 @@ void SimpleDeferred::onFrameRender(SampleCallbacks* pSample, RenderContext* pRen
     {
         pRenderContext->clearFbo(mpGBufferFbo.get(), glm::vec4(0), 1.0f, 0, FboAttachmentType::Color | FboAttachmentType::Depth);
         pState->setFbo(mpGBufferFbo);
+
+        cameraReel(pSample->getFrameID(), mpCamera);
 
         mpCamera->setDepthRange(mNearZ, mFarZ);
         CameraController& ActiveController = getActiveCameraController();
