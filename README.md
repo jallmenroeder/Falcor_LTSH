@@ -11,6 +11,11 @@ I'm very happy to answer any arising questions. Just mail me through contact∂j
 ## Set Up
 This project is not a standalone and needs to be integrated into the Falcor Framework (v. 3.2.1). See the [Falcor README](https://github.com/NVIDIAGameWorks/Falcor/tree/3.2.1#creating-a-new-project) for more information. I only tested the project using DirectX12.
 
+## How to use
+You can find a release with [pre-compiled 64bit windows binaries](https://github.com/jallmenroeder/Falcor_LTSH/releases/tag/v0.2). The shading technique is selected via "Area Light Rener Mode". The ground truth implementation is very performance heavy and should be used with care. <br/> 
+Since the shading techniques differ only in the specular shading, using the "specular" debug mode helps with spotting differences (turned on by default). Full shading is retrieved by using the "None" debug mode. <br/>
+Position, size and transformation of the light source is can be changed through the "Lights" tab. 
+
 ## Credits
 Thanks to Eric Heitz and his research team as well as Wang and Ramamoorthi for providing their code as I relied on their techniques and could reuse significant parts. 
 A huge shoutout goes to my advisor Christoph Peters who put in a lot of time and expertise to help me with and review my work.
